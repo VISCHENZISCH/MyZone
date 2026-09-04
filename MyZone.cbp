@@ -33,7 +33,19 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="include/Database.hpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="include/DeviceCategory.hpp" />
+		<Unit filename="include/MacAddress.hpp" />
 		<Unit filename="main.cpp" />
+		<Unit filename="src/Database.cpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="src/DeviceCategory.cpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="src/MacAddress.cpp" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>
