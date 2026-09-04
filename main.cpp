@@ -1,42 +1,56 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <vector>
 
 #include "include/MacAddress.hpp"
+#include "include/DeviceCategory.hpp"
+#include "include/Database.hpp"
 
 using namespace std;
 using namespace myzone;
 
-int main() {
-    cout << "=== TEST DE LA CLASSE MAC ADDRESS ===" << endl;
+// Fonction utilitaire pour tester une adresse MAC dans la DB
+void testMacLookup(const Database& db, const string& macStr) {
     try {
-        // Test 1 : Avec des tirets (Format Windows classique)
-        cout << "\nTest 1 (Tirets) :" << endl;
-        MacAddress mac1("00-1A-2B-3C-4D-5E");
-        if (mac1.isValid()) {
-            cout << "Adresse formatée : " << mac1.toString() << endl;
-            cout << "OUI (Fabricant)  : " << mac1.yes() << endl;
+        MacAddress mac(macStr);
+        cout << "MAC: " << mac.toString() << " | Yes: " << mac.yes() << endl;
+
+        DeviceInfo info;
+        if (db.lookup(mac, info)) {
+            cout << "  -> Manufacturer: " << info.companyName << endl;
+            cout << "  -> Category:     " << toString(info.category) << endl;
+        } else {
+            cout << "  -> Not found in database." << endl;
         }
-        // Test 2 : Avec des deux-points et minuscules (Format Linux/Mac classique)
-        cout << "\nTest 2 (Deux-points & minuscules) :" << endl;
-        MacAddress mac2("a1:b2:c3:d4:e5:f6");
-        cout << "Adresse formatée : " << mac2.toString() << endl;
-        cout << "OUI (Fabricant)  : " << mac2.yes() << endl;
-        
-        // Test 3 : Sans aucun séparateur
-        cout << "\nTest 3 (Aucun séparateur) :" << endl;
-        MacAddress mac3("112233445566");
-        cout << "Adresse formatée : " << mac3.toString() << endl;
-        // Test 4 : Testons une erreur exprès (l'adresse est trop courte)
-        cout << "\nTest 4 (Erreur volontaire) :" << endl;
-        MacAddress macErreur("00:11:22"); 
-        
-        // La ligne suivante ne s'affichera pas car l'erreur interrompt le code plus haut
-        cout << macErreur.toString() << endl; 
     } catch (const std::invalid_argument& e) {
-        // Cette partie va "attraper" l'erreur du Test 4 et afficher notre message
-        cout << "-> Erreur interceptee avec succes : " << e.what() << endl;
+        cout << "Invalid MAC: " << e.what() << endl;
     }
-    cout << "\nFin des tests." << endl;
+    cout << "------------------------------------------\n";
+}
+
+int main() {
+    cout << "=== MYZONE GLOBAL TEST ===\n" << endl;
+
+    // Load CSV database
+    cout << "Loading database..." << endl;
+    
+    // Assure-toi que le chemin vers lookup.csv est bon par rapport à l'exécutable
+    Database db("data/lookup.csv"); 
+    
+    cout << "Database loaded.\n" << endl;
+
+    vector<string> macsToTest = {
+        "C4:A0:52:11:22:33", // Should match Motorola (Phone)
+        "3C:08:CD:AA:BB:CC", // Should match Juniper Networks (Router)
+        "00:1A:EB:99:88:77", // Should match Allied Telesis (Switch)
+        "11-22-33-44-55-66", // Unknown
+        "00:11:22"           // Error: Invalid length
+    };
+
+    for (const string& mac : macsToTest) {
+        testMacLookup(db, mac);
+    }
+
     return 0;
 }
