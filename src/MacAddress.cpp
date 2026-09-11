@@ -1,82 +1,121 @@
 #include "../include/MacAddress.hpp"
+
 #include <algorithm>
 #include <cctype>
-#include <sstream>
-#include <iomanip>
 #include <stdexcept>
 
 namespace myzone {
-	
-	//fonction utilitaire qui nettoie la chaîne d'entrée
-	std::string MacAddress::normalizeInput(const std::string& raw) {
-		
-		std::string clean;
-		for (char c : raw) {
-			if (std::isxdigit(c)) {
-				clean += (char)std::toupper(c);
-			}
-		}
-		return clean;
-	}
-	
-	MacAddress::MacAddress(const std::string& raw) {
-		
-		std::string clean = normalizeInput(raw);
-		if (clean.length() != 12) {
-			valid_ = false;
-			throw std::invalid_argument("Format d'adresse MAC invalide : " + raw);
-		}
-		
-		try {
-			
-			for (size_t i = 0; i < 6; ++i) {
-				std::string byteString = clean.substr(i * 2, 2);
-				bytes_[i] = static_cast<unsigned char> (std::stoi(byteString, nullptr, 16));
-			}
-			
-			valid_ = true;
-			
-		} catch (const std::exception&) {
-			valid_ = false;
-			throw std::invalid_argument("Erreur  de parsing (lecture) de l'adresse MAC : " + raw);
-		}
-	}
-	
-	// toString() pour afficher l'adresse complète
-	
-	std::string MacAddress::toString() const {
-		if (!valid_) return "INVALID_MAC";
-		
-		std::stringstream ss;
-		
-		ss << std::hex << std::uppercase << std::setfill('0');
-		
-		for (size_t i = 0; i < 6; ++i) {
-			
-			ss << std::setw(2) << static_cast<int>(bytes_[i]);
-			
-			if (i < 5) {
-				ss << ":"; // AJout du séparateur  ':' 
-			}
-		}
-		
 
-			return ss.str();
-	}
-	
-	//Méthode yes()
-	
-	std::string MacAddress::yes() const {
-		
-		if (!valid_) return "";
-		std::stringstream ss;
-		ss << std::hex << std::uppercase << std::setfill('0');
-		
-		for (size_t i = 0; i < 3; ++i) {
-			ss << std::setw(2) << static_cast<int>(bytes_[i]);
-		}
-		
-			return ss.str();
-	}
-	
+namespace {
+
+std::string trim(const std::string& value) {
+    const auto first = std::find_if_not(value.begin(), value.end(), [](unsigned char c) {
+        return std::isspace(c) != 0;
+    });
+    const auto last = std::find_if_not(value.rbegin(), value.rend(), [](unsigned char c) {
+        return std::isspace(c) != 0;
+    }).base();
+    return first >= last ? "" : std::string(first, last);
 }
+
+int hexValue(unsigned char value) {
+    if (value >= '0' && value <= '9') {
+        return value - '0';
+    }
+    value = static_cast<unsigned char>(std::toupper(value));
+    return value >= 'A' && value <= 'F' ? value - 'A' + 10 : -1;
+}
+
+} // namespace
+
+std::string MacAddress::normalizeInput(const std::string& raw) {
+    const std::string value = trim(raw);
+    std::string normalized;
+    normalized.reserve(12);
+
+    if (value.size() == 12) {
+        for (unsigned char c : value) {
+            if (!std::isxdigit(c)) {
+                return "";
+            }
+            normalized += static_cast<char>(std::toupper(c));
+        }
+        return normalized;
+    }
+
+    // Les séparateurs sont acceptés seulement s'ils sont cohérents et à la bonne position.
+    if (value.size() != 17 || (value[2] != ':' && value[2] != '-')) {
+        return "";
+    }
+    const char separator = value[2];
+    for (std::size_t index = 0; index < value.size(); ++index) {
+        if (index == 2 || index == 5 || index == 8 || index == 11 || index == 14) {
+            if (value[index] != separator) {
+                return "";
+            }
+        } else {
+            const unsigned char c = static_cast<unsigned char>(value[index]);
+            if (!std::isxdigit(c)) {
+                return "";
+            }
+            normalized += static_cast<char>(std::toupper(c));
+        }
+    }
+    return normalized;
+}
+
+MacAddress::MacAddress(const std::string& raw) {
+    const std::string clean = normalizeInput(raw);
+    if (clean.size() != 12) {
+        throw std::invalid_argument("Format d'adresse MAC invalide : " + raw);
+    }
+
+    for (std::size_t index = 0; index < bytes_.size(); ++index) {
+        const int high = hexValue(static_cast<unsigned char>(clean[index * 2]));
+        const int low = hexValue(static_cast<unsigned char>(clean[index * 2 + 1]));
+        if (high < 0 || low < 0) {
+            throw std::invalid_argument("Erreur de parsing de l'adresse MAC : " + raw);
+        }
+        bytes_[index] = static_cast<unsigned char>((high << 4) | low);
+    }
+    valid_ = true;
+}
+
+std::string MacAddress::compact() const {
+    if (!valid_) {
+        return "";
+    }
+
+    static constexpr char hex[] = "0123456789ABCDEF";
+    std::string result;
+    result.reserve(12);
+    for (const unsigned char byte : bytes_) {
+        result += hex[byte >> 4];
+        result += hex[byte & 0x0F];
+    }
+    return result;
+}
+
+std::string MacAddress::toString() const {
+    const std::string value = compact();
+    if (value.empty()) {
+        return "INVALID_MAC";
+    }
+
+    std::string result;
+    result.reserve(17);
+    for (std::size_t index = 0; index < value.size(); ++index) {
+        if (index > 0 && index % 2 == 0) {
+            result += ':';
+        }
+        result += value[index];
+    }
+    return result;
+}
+
+std::string MacAddress::yes() const {
+    const std::string value = compact();
+    return value.size() >= 6 ? value.substr(0, 6) : "";
+}
+
+} // namespace myzone

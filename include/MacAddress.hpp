@@ -11,6 +11,8 @@ namespace myzone {
     public:
         MacAddress() = default;
         explicit MacAddress(const std::string& raw);
+        // Les 12 chiffres hexadécimaux de l'adresse, sans séparateur.
+        std::string compact() const;
         std::string yes() const;
         std::string toString() const;
         const std::array<unsigned char, 6>& bytes() const { return bytes_;}

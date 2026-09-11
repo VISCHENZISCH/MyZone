@@ -4,90 +4,94 @@
 
 # MyZone
 
-**Détection et classification des objets connectés sur le réseau local**
+**Identification locale d'appareils réseau par adresse MAC et empreinte DHCP**
 
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)](https://en.cppreference.com/w/cpp/17)
-[![Code::Blocks](https://img.shields.io/badge/IDE-Code%3A%3ABlocks-0052CC?style=for-the-badge)](http://www.codeblocks.org/)
+[![Interface](https://img.shields.io/badge/interface-CLI%20interactive-00B8D9?style=for-the-badge)](#interface)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-lightgrey?style=for-the-badge&logo=linux&logoColor=white)](#)
-[![License](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)](#)
-[![Status](https://img.shields.io/badge/status-en%20développement-orange?style=for-the-badge)](#)
-[![Dark Packet](https://img.shields.io/badge/Dark%20Packet-suite-black?style=for-the-badge)](#)
 
 </div>
 
 ---
 
-Outil en C++ pour détecter les objets connectés présents sur le réseau local et les classer automatiquement par catégorie : **modem/routeur**, **wifi/réseau**, **objets IoT**.
+MyZone est un outil C++ local : il associe le préfixe d'une adresse MAC (OUI) à un fabricant, affiche la catégorie connue de l'appareil et peut consulter une empreinte DHCP issue de FingerBank/KYD. Il ne scanne pas le réseau et n'envoie aucune donnée.
 
-## Objectif
+## Fonctionnalités
 
-MyZone scanne la zone réseau locale, identifie les appareils actifs via leur adresse MAC, et détermine leur fabricant et leur type grâce à une base de données OUI (*Organizationally Unique Identifier*). Chaque appareil détecté est ensuite classé dans une des catégories cibles pour donner une vue claire de ce qui est connecté sur le réseau.
+- Recherche interactive d'un fabricant à partir d'une MAC, avec saisie `AA:BB:CC:DD:EE:FF`, `AA-BB-CC-DD-EE-FF` ou compacte.
+- Catégorisation lorsque l'information est disponible : routeur, smartphone, switch, caméra, IoT, etc.
+- Chargement sans doublon des index OUI : le référentiel MyZone prioritaire est complété par Wireshark et Nmap uniquement pour les préfixes absents.
+- Recherche d'empreintes DHCP par hash MD5 dans la base KYD / FingerBank.
+- Tableau de bord coloré : recherche MAC, recherche DHCP, démonstration, aide et catalogue des sources.
 
-## Fonctionnement (Phase 1 - lookup)
+## Lancer le projet
 
-1. Récupération des adresses MAC actives sur le réseau local
-2. Extraction de l'OUI (les 3 premiers octets de l'adresse MAC = identifiant fabricant)
-3. Lookup dans la base OUI pour retrouver le fabricant et le type d'appareil
-4. Classification en catégories (Modem, Wifi/Réseau, IoT, ou Inconnu si aucune correspondance)
+### Avec Code::Blocks
 
-## Structure du projet
+1. Ouvrir `MyZone.cbp`.
+2. Choisir **Build → Build and run** (`F9`).
+3. L'application localise automatiquement le dossier `data/`, y compris lorsqu'elle est lancée depuis `bin/Debug`.
 
-```
-MyZone/
-├── MyZone.cbp                 # Fichier projet Code::Blocks
-├── data/
-│   └── oui_lookup.csv         # Base de données OUI (fabricant + type d'appareil)
-├── include/
-│   ├── MacAddress.hpp         # Parsing et normalisation d'adresses MAC
-│   ├── OuiDatabase.hpp        # Chargement CSV et lookup OUI
-│   └── DeviceCategory.hpp     # Classification par catégorie
-├── src/
-│   ├── main.cpp
-│   ├── MacAddress.cpp
-│   ├── OuiDatabase.cpp
-│   └── DeviceCategory.cpp
-├── build/                     # Fichiers objets générés (ignoré par git)
-├── bin/                       # Exécutable généré (ignoré par git)
-└── .gitignore
+### Avec GCC
+
+```bash
+g++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Iinclude \
+  main.cpp src/Database.cpp src/MacAddress.cpp src/DeviceCategory.cpp \
+  -o MyZone
+./MyZone
 ```
 
-## Prérequis
+Pour désactiver les couleurs ANSI, définissez `NO_COLOR` :
 
-- Compilateur C++17 (GCC/MinGW recommandé)
-- [Code::Blocks](http://www.codeblocks.org/) (IDE utilisé pour ce projet)
+```bash
+NO_COLOR=1 ./MyZone
+```
 
-## Compilation
+## Interface
 
-1. Ouvrir `MyZone.cbp` dans Code::Blocks
-2. Build → Build (`Ctrl+F9`)
-3. L'exécutable est généré dans `bin/Debug/` (ou `bin/Release/`)
+Au démarrage, l'écran d'accueil affiche le nombre de préfixes MAC uniques et d'empreintes DHCP indexées. Le tableau de bord propose :
 
-## Base de données 
+| Option | Action |
+|---:|---|
+| 1 | Rechercher un appareil par adresse MAC |
+| 2 | Rechercher une empreinte DHCP connue |
+| 3 | Voir les données chargées et les signatures disponibles |
+| 4 | Lancer une démonstration avec des MAC d'exemple |
+| 5 | Afficher l'aide et les limites d'identification |
+| 0 | Quitter |
 
-Le fichier `data/lookup.csv` contient les correspondances OUI → fabricant → type d'appareil, avec les colonnes suivantes :
+Une MAC permet d'identifier un bloc attribué à un fabricant ; elle ne garantit pas, à elle seule, le modèle ou le type exact de l'appareil.
 
-| Colonne | Description |
+## Sources de données
+
+Les fichiers sont centralisés dans `data/`. Les fichiers utilisés directement par l'interface sont indexés au lancement ; les signatures destinées à un futur moteur de scan restent disponibles et sont signalées dans le catalogue.
+
+| Fichier | Utilisation dans MyZone |
 |---|---|
-| `oui` | Préfixe MAC (3 premiers octets) |
-| `manufacturer` | Nom du fabricant |
-| `registry` | Type de registre IEEE (MA-L, MA-M, MA-S...) |
-| `short_name` | Nom court du fabricant |
-| `device_type` | Type d'appareil (Router, IoT, SmartHome, Camera...) |
-| `registered_date` | Date d'enregistrement IEEE |
-| `address` | Adresse du fabricant |
-| `sources` | Sources ayant contribué à l'entrée |
+| `lookup.csv` | Référentiel OUI principal et catégories d'appareil |
+| `manuf` | Complément Wireshark récent pour les fabricants OUI |
+| `wireshark-manuf.txt` | Complément Wireshark historique |
+| `nmap-mac-prefixes.txt` | Complément Nmap pour les fabricants OUI |
+| `kyd-dhcp-db.txt` | Lookup interactif d'empreintes DHCP |
+| `dhcp_fingerprints.conf` | Règles DHCP disponibles pour une future capture réseau |
+| `nmap-os-db.txt` | Signatures d'OS pour fingerprinting actif futur |
+| `nmap-service-probes.txt` | Signatures de services pour scan futur |
+| `p0f.fp` | Signatures TCP/IP pour fingerprinting passif futur |
 
-## Roadmap
+Les attributions et licences des bases téléchargées sont détaillées dans [data/README_DATABASES.md](data/README_DATABASES.md).
 
-- [x] Structure de base du projet
-- [ ] Implémentation du parsing MAC (`MacAddress`)
-- [ ] Implémentation du chargement CSV et du lookup (`OuiDatabase`)
-- [ ] Implémentation de la classification (`DeviceCategory`)
-- [ ] Scan réseau local (récupération des adresses MAC actives — ARP/ping sweep)
-- [ ] Classification avancée (scan de ports, fingerprinting)
-- [ ] Interface CLI avancée
-- [ ] Interface graphique (UI)
+## Structure
 
-## Auteur
+```text
+MyZone/
+├── data/                  # Toutes les bases locales
+├── include/               # Interfaces C++
+├── src/                   # Chargement des bases et modèles métier
+├── main.cpp               # Tableau de bord interactif
+├── MyZone.cbp             # Projet Code::Blocks (C++17)
+└── myzone-logo.svg
+```
 
-**Félix Tovignan** - [Dark Packet](https://github.com/)
+## Limites et prochaine étape
+
+Cette version est volontairement locale et consultative. Nmap, p0f et FingerBank fournissent les signatures nécessaires pour une évolution vers la découverte d'appareils, l'analyse de trafic DHCP et le fingerprinting actif/passif. Ajouter ce module impliquera de demander explicitement les permissions réseau nécessaires.

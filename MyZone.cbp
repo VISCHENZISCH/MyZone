@@ -13,7 +13,6 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
-					<Add directory="C:/Users/visch/Desktop/vischenzisch/MyZone/include" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -32,19 +31,17 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-std=c++17" />
 		</Compiler>
+		<Unit filename="data/lookup.csv" />
 		<Unit filename="include/Database.hpp">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
 		<Unit filename="include/DeviceCategory.hpp" />
 		<Unit filename="include/MacAddress.hpp" />
 		<Unit filename="main.cpp" />
-		<Unit filename="src/Database.cpp">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="src/DeviceCategory.cpp">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="src/Database.cpp" />
+		<Unit filename="src/DeviceCategory.cpp" />
 		<Unit filename="src/MacAddress.cpp" />
 		<Extensions />
 	</Project>
