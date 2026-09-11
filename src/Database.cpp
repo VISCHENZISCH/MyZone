@@ -372,7 +372,7 @@ bool Database::lookupDhcpFingerprint(const std::string& fingerprint,
         return false;
     }
     outInfo = it->second;
-    return true;
+    return true; 
 }
 
 } // namespace myzone

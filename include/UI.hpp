@@ -31,9 +31,23 @@ void initConsole();
 bool colorsEnabled();
 std::string color(const std::string& text, const char* colorCode);
 
+enum class LogLevel {
+    Startup,
+    Info,
+    Pending,
+    Success,
+    Warning,
+    Error,
+    Complete
+};
+
+// Une ligne de journal compacte : pictogramme, niveau coloré, puis message.
+void log(LogLevel level, const std::string& text);
+
 // Layout functions
 int getConsoleWidth();
 void drawLine(const char* left, const char* fill, const char* right);
+void separator();
 void drawFooter();
 void printMenu();
 

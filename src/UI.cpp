@@ -1,4 +1,5 @@
 #include "../include/UI.hpp"
+#include <cstdlib>
 #include <iostream>
 #include <string>
 
@@ -29,6 +30,46 @@ std::string color(const std::string& text, const char* colorCode) {
     return std::string(colorCode) + text + reset;
 }
 
+namespace {
+
+struct LogStyle {
+    const char* icon;
+    const char* label;
+    const char* colorCode;
+};
+
+LogStyle styleFor(const LogLevel level) {
+    switch (level) {
+    case LogLevel::Startup:  return {"▸", "start",    green};
+    case LogLevel::Info:     return {"ℹ", "info",     blue};
+    case LogLevel::Pending:  return {"□", "pending",  magenta};
+    case LogLevel::Success:  return {"✓", "success",  green};
+    case LogLevel::Warning:  return {"…", "watching", yellow};
+    case LogLevel::Error:    return {"■", "error",    red};
+    case LogLevel::Complete: return {"⊠", "complete", cyan};
+    }
+    return {"ℹ", "info", blue};
+}
+
+std::string paddedLabel(const char* label) {
+    constexpr std::size_t labelWidth = 8;
+    std::string value(label);
+    if (value.size() < labelWidth) {
+        value.append(labelWidth - value.size(), ' ');
+    }
+    return value;
+}
+
+} // namespace
+
+void log(const LogLevel level, const std::string& text) {
+    const LogStyle style = styleFor(level);
+    const std::string label = paddedLabel(style.label);
+    std::cout << color(style.icon, style.colorCode) << "  "
+              << color(label, style.colorCode)
+              << "  " << text << '\n';
+}
+
 int getConsoleWidth() {
     int width = 80;
 #ifdef _WIN32
@@ -54,62 +95,54 @@ void drawLine(const char* left, const char* fill, const char* right) {
     std::cout << color(right, blue) << '\n';
 }
 
+void separator() {
+    std::cout << color("\\============================================================", blue) << '\n';
+}
+
 void drawFooter() {
-    drawLine(boxBottomLeft, boxHorizontal, boxBottomRight);
+    separator();
+    log(LogLevel::Complete, "Session MyZone terminée.");
 }
 
 void title(const std::string& text) {
-    std::cout << '\n' << color("  " + text, cyan) << '\n';
+    log(LogLevel::Startup, text);
 }
 
 void success(const std::string& text) {
-    std::cout << "  " << color("OK", green) << " " << text << '\n';
+    log(LogLevel::Success, text);
 }
 
 void warning(const std::string& text) {
-    std::cout << "  " << color("!", yellow) << " " << text << '\n';
+    log(LogLevel::Warning, text);
 }
 
 void error(const std::string& text) {
-    std::cout << "  " << color("X", red) << " " << text << '\n';
+    log(LogLevel::Error, text);
 }
 
 std::string prompt(const std::string& label) {
-    std::cout << '\n' << color("  > ", magenta) << label << std::flush;
+    std::cout << color("▸", magenta) << "  "
+              << color("input   ", magenta)
+              << "  " << label << std::flush;
     std::string value;
     std::getline(std::cin, value);
     return value;
 }
 
 void waitForEnter() {
-    std::cout << '\n' << color("  Appuyez sur Entrée pour continuer...", dim) << std::flush;
+    std::cout << color("…", yellow) << "  "
+              << color("watching", yellow)
+              << "  Appuyez sur Entrée pour continuer..." << std::flush;
     std::string ignored;
     std::getline(std::cin, ignored);
 }
 
 void printMenu() {
     std::cout << '\n';
-    drawLine(boxTopLeft, boxHorizontal, boxTopRight);
-    std::cout << color(boxVertical, blue) << color("  TABLEAU DE BORD", bold)
-              << std::string(getConsoleWidth() - 2 - 17, ' ') << color(boxVertical, blue) << '\n';
-    drawLine(boxDividerLeft, boxHorizontal, boxDividerRight);
-
-    auto printOption = [](const char* key, const char* desc) {
-        std::string keyStr(key);
-        std::string descStr(desc);
-        int width = getConsoleWidth();
-        int padLen = width - 2 - 4 - keyStr.length() - descStr.length();
-        if (padLen < 0) padLen = 0;
-        std::string padding(padLen, ' ');
-        std::cout << color(boxVertical, blue)
-                  << "  " << color(keyStr, cyan) << "  " << descStr
-                  << padding << color(boxVertical, blue) << '\n';
-    };
-
-    printOption("1", "Rechercher un appareil par adresse MAC");
-    printOption("0", "Quitter");
-
-    drawLine(boxBottomLeft, boxHorizontal, boxBottomRight);
+    separator();
+    log(LogLevel::Info, "Tableau de bord MyZone");
+    log(LogLevel::Pending, "[1] Rechercher un appareil par adresse MAC");
+    log(LogLevel::Pending, "[0] Quitter");
 }
 
 } // namespace ui

@@ -42,15 +42,18 @@ std::string locateDataDirectory(const char* executable) {
 
 void printDevice(const myzone::MacAddress& mac, const myzone::DeviceInfo& info) {
     myzone::ui::title("RÉSULTAT  /  ADRESSE MAC");
-    std::cout << "  Adresse      " << myzone::ui::color(mac.toString(), myzone::ui::cyan) << '\n';
-    std::cout << "  Fabricant    " << myzone::ui::color(info.companyName, myzone::ui::bold) << '\n';
-    std::cout << "  Catégorie    " << myzone::toString(info.category) << '\n';
-    std::cout << "  Source       " << info.source << "\n";
+    myzone::ui::log(myzone::ui::LogLevel::Info,
+                    "Adresse MAC : " + myzone::ui::color(mac.toString(), myzone::ui::cyan));
+    myzone::ui::log(myzone::ui::LogLevel::Info,
+                    "Fabricant : " + myzone::ui::color(info.companyName, myzone::ui::bold));
+    myzone::ui::log(myzone::ui::LogLevel::Info, "Catégorie : " + myzone::toString(info.category));
+    myzone::ui::log(myzone::ui::LogLevel::Info, "Source : " + info.source);
 }
 
 void lookupMac(const myzone::Database& database) {
     myzone::ui::title("RECHERCHE  /  ADRESSE MAC");
-    std::cout << "  Formats acceptés : AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF ou AABBCCDDEEFF\n";
+    myzone::ui::log(myzone::ui::LogLevel::Info,
+                    "Formats : AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF ou AABBCCDDEEFF");
     const std::string rawMac = myzone::ui::prompt("Adresse MAC (Entrée pour retour) : ");
     if (rawMac.empty()) {
         return;
@@ -78,13 +81,20 @@ void printMenu() {
 
 int main(int argc, char* argv[]) {
     myzone::ui::initConsole();
+    myzone::ui::separator();
     const std::string dataDirectory = locateDataDirectory(argc > 0 ? argv[0] : "MyZone");
+    myzone::ui::log(myzone::ui::LogLevel::Startup, "Démarrage de MyZone");
+    myzone::ui::log(myzone::ui::LogLevel::Pending, "Chargement des référentiels réseau...");
     const myzone::Database database(dataDirectory);
 
     if (!database.isReady()) {
         myzone::ui::error("Aucune source OUI n'a été chargée. Vérifiez le dossier data/.");
         return 1;
     }
+
+    myzone::ui::log(myzone::ui::LogLevel::Info, "Répertoire des données : " + database.dataDirectory());
+    myzone::ui::success(std::to_string(database.vendorCount()) + " préfixes OUI indexés.");
+    myzone::ui::success(std::to_string(database.dhcpFingerprintCount()) + " empreintes DHCP indexées.");
 
     for (;;) {
         printMenu();
@@ -103,7 +113,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::cout << "\n  MyZone arrêté. À bientôt sur votre réseau.\n\n";
+    myzone::ui::success("Arrêt de MyZone. À bientôt sur votre réseau.");
     myzone::ui::drawFooter();
     return 0;
 }
