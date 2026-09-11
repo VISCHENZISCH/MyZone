@@ -43,7 +43,6 @@ std::string MacAddress::normalizeInput(const std::string& raw) {
         return normalized;
     }
 
-    // Les séparateurs sont acceptés seulement s'ils sont cohérents et à la bonne position.
     if (value.size() != 17 || (value[2] != ':' && value[2] != '-')) {
         return "";
     }

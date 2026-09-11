@@ -1,10 +1,9 @@
 #include "../include/DeviceCategory.hpp"
 
 namespace myzone {
-	
-	//mot -> Catégorie
+
 	DeviceCategory classifyFromDeviceType(const std::string& deviceType) {
-		
+
 		if (deviceType == "Computer")       return DeviceCategory::Computer;
 		if (deviceType == "Phone")          return DeviceCategory::Mobile;
 		if (deviceType == "Tablet")         return DeviceCategory::Tablet;
@@ -25,12 +24,9 @@ namespace myzone {
 		if (deviceType == "Wearable")       return DeviceCategory::Wearable;
 		if (deviceType == "Audio")          return DeviceCategory::Audio;
 
-		// Si la colonne est vide ou mot est inconnu
 		return DeviceCategory::Unknown;
-		
 	}
-	
-		//  catégorie en texte lisible 
+
 	std::string toString(DeviceCategory category) {
 		switch (category) {
 			case DeviceCategory::Computer:       return "Ordinateur";
@@ -53,5 +49,5 @@ namespace myzone {
 			case DeviceCategory::Unknown:
 			default:                             return "Inconnu";
 		}
-	}	
+	}
 }

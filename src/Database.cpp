@@ -163,11 +163,12 @@ bool fileExists(const std::string& filePath) {
 } // namespace
 
 Database::Database(const std::string& dataDirectory) : dataDirectory_(dataDirectory) {
-    // Les réservations empêchent les réallocations et rehashes pendant l'indexation.
     data_.max_load_factor(0.70F);
     data_.reserve(150000);
     dhcpData_.max_load_factor(0.70F);
     dhcpData_.reserve(1024);
+    p0fData_.max_load_factor(0.70F);
+    p0fData_.reserve(1024);
     sources_.reserve(9);
 
     loadLookupCsv(joinPath(dataDirectory_, "lookup.csv"));
@@ -175,15 +176,13 @@ Database::Database(const std::string& dataDirectory) : dataDirectory_(dataDirect
     loadManufFile(joinPath(dataDirectory_, "wireshark-manuf.txt"), "Wireshark manuf historique");
     loadNmapPrefixes(joinPath(dataDirectory_, "nmap-mac-prefixes.txt"));
     loadDhcpFingerprints(joinPath(dataDirectory_, "kyd-dhcp-db.txt"));
+    loadP0fSignatures(joinPath(dataDirectory_, "p0f.fp"));
+    loadFingerBankConf(joinPath(dataDirectory_, "dhcp_fingerprints.conf"));
 
-    addPassiveSource("dhcp_fingerprints.conf", "FingerBank DHCP",
-                     "Règles de signature DHCP complémentaires");
     addPassiveSource("nmap-os-db.txt", "Nmap OS DB",
                      "Signatures pour le fingerprinting actif des systèmes");
     addPassiveSource("nmap-service-probes.txt", "Nmap service probes",
                      "Probes et signatures de services réseau");
-    addPassiveSource("p0f.fp", "p0f",
-                     "Signatures pour le fingerprinting passif TCP/IP");
 }
 
 void Database::addSource(const DataSourceInfo& source) {
@@ -198,7 +197,6 @@ void Database::addVendor(const std::string& prefix,
         return;
     }
 
-    // L'entrée lue en premier garde la priorité. lookup.csv contient les catégories.
     const auto [entry, inserted] = data_.try_emplace(prefix);
     if (inserted) {
         entry->second = DeviceInfo{companyName, category, source};
@@ -336,11 +334,112 @@ void Database::loadDhcpFingerprints(const std::string& filePath) {
     addSource(source);
 }
 
+void Database::loadP0fSignatures(const std::string& filePath) {
+    std::ifstream file(filePath);
+    DataSourceInfo source{"p0f.fp", "p0f",
+                          "Signatures pour le fingerprinting passif TCP/IP", 0, file.is_open(), true};
+    if (!file.is_open()) {
+        addSource(source);
+        return;
+    }
+
+    std::string line;
+    bool inTcpRequest = false;
+    std::string currentLabel;
+
+    while (std::getline(file, line)) {
+        std::string tLine = trim(line);
+        if (tLine.empty() || tLine[0] == ';') continue;
+
+        if (tLine.front() == '[' && tLine.back() == ']') {
+            inTcpRequest = (tLine == "[tcp:request]");
+            currentLabel.clear();
+            continue;
+        }
+
+        if (inTcpRequest) {
+            if (tLine.rfind("label", 0) == 0) {
+                std::size_t eqPos = tLine.find('=');
+                if (eqPos != std::string::npos) {
+                    currentLabel = trim(tLine.substr(eqPos + 1));
+                }
+            } else if (tLine.rfind("sig", 0) == 0) {
+                std::size_t eqPos = tLine.find('=');
+                if (eqPos != std::string::npos && !currentLabel.empty()) {
+                    std::string sig = trim(tLine.substr(eqPos + 1));
+                    if (!sig.empty()) {
+                        P0fSignatureInfo info;
+                        info.signature = sig;
+                        // Clean up label if it's s:class:name:version
+                        if (currentLabel.rfind("s:", 0) == 0) {
+                            std::string cleaned;
+                            for (std::size_t i = 2; i < currentLabel.size(); ++i) {
+                                if (currentLabel[i] == ':') cleaned += ' ';
+                                else cleaned += currentLabel[i];
+                            }
+                            info.osName = cleaned;
+                        } else {
+                            info.osName = currentLabel;
+                        }
+                        p0fData_.try_emplace(sig, std::move(info));
+                        ++source.records;
+                    }
+                }
+            }
+        }
+    }
+    addSource(source);
+}
+
+void Database::loadFingerBankConf(const std::string& filePath) {
+    std::ifstream file(filePath);
+    DataSourceInfo source{"dhcp_fingerprints.conf", "FingerBank DHCP",
+                          "Règles de signature DHCP complémentaires", 0, file.is_open(), true};
+    if (!file.is_open()) {
+        addSource(source);
+        return;
+    }
+
+    std::string line;
+    bool inOsSection = false;
+    bool readingFingerprints = false;
+    std::string currentOs;
+
+    while (std::getline(file, line)) {
+        std::string tLine = trim(line);
+        if (tLine.empty() || tLine[0] == '#') continue;
+
+        if (tLine.front() == '[' && tLine.back() == ']') {
+            inOsSection = (tLine.rfind("[os ", 0) == 0);
+            readingFingerprints = false;
+            currentOs.clear();
+            continue;
+        }
+
+        if (inOsSection) {
+            if (tLine.rfind("description=", 0) == 0) {
+                currentOs = trim(tLine.substr(12));
+            } else if (tLine.rfind("fingerprints=<<EOT", 0) == 0) {
+                readingFingerprints = true;
+            } else if (tLine == "EOT") {
+                readingFingerprints = false;
+            } else if (readingFingerprints && !currentOs.empty()) {
+                // Cette ligne contient la liste des options (ex: "1,15,3,6,44")
+                FingerBankInfo info;
+                info.options = tLine;
+                info.osName = currentOs;
+                fingerBankData_.try_emplace(tLine, std::move(info));
+                ++source.records;
+            }
+        }
+    }
+    addSource(source);
+}
+
 void Database::addPassiveSource(const std::string& fileName,
                                 const std::string& label,
                                 const std::string& purpose) {
     const bool available = fileExists(joinPath(dataDirectory_, fileName));
-    // Ne pas parcourir les fichiers de signatures de plusieurs Mo au démarrage.
     addSource(DataSourceInfo{fileName, label, purpose, 0, available, false});
 }
 
@@ -372,7 +471,27 @@ bool Database::lookupDhcpFingerprint(const std::string& fingerprint,
         return false;
     }
     outInfo = it->second;
-    return true; 
+    return true;
+}
+
+bool Database::lookupP0fSignature(const std::string& signature,
+                                  P0fSignatureInfo& outInfo) const {
+    const auto it = p0fData_.find(trim(signature));
+    if (it == p0fData_.end()) {
+        return false;
+    }
+    outInfo = it->second;
+    return true;
+}
+
+bool Database::lookupFingerBankOptions(const std::string& options,
+                                       FingerBankInfo& outInfo) const {
+    const auto it = fingerBankData_.find(trim(options));
+    if (it == fingerBankData_.end()) {
+        return false;
+    }
+    outInfo = it->second;
+    return true;
 }
 
 } // namespace myzone

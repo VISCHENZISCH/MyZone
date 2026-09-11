@@ -42,13 +42,28 @@
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
 		<Unit filename="include/DeviceCategory.hpp" />
+		<Unit filename="include/DeviceProfile.hpp" />
+		<Unit filename="include/IdentificationEngine.hpp" />
+		<Unit filename="include/IdentificationModule.hpp" />
 		<Unit filename="include/MacAddress.hpp" />
 		<Unit filename="include/UI.hpp" />
+		<Unit filename="include/modules/DhcpModule.hpp" />
+		<Unit filename="include/modules/FingerBankModule.hpp" />
+		<Unit filename="include/modules/HostnameModule.hpp" />
+		<Unit filename="include/modules/OuiModule.hpp" />
+		<Unit filename="include/modules/P0fModule.hpp" />
 		<Unit filename="main.cpp" />
 		<Unit filename="src/Database.cpp" />
 		<Unit filename="src/DeviceCategory.cpp" />
+		<Unit filename="src/DeviceProfile.cpp" />
+		<Unit filename="src/IdentificationEngine.cpp" />
 		<Unit filename="src/MacAddress.cpp" />
 		<Unit filename="src/UI.cpp" />
+		<Unit filename="src/modules/DhcpModule.cpp" />
+		<Unit filename="src/modules/FingerBankModule.cpp" />
+		<Unit filename="src/modules/HostnameModule.cpp" />
+		<Unit filename="src/modules/OuiModule.cpp" />
+		<Unit filename="src/modules/P0fModule.cpp" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>

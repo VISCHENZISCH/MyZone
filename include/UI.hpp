@@ -5,7 +5,6 @@
 namespace myzone {
 namespace ui {
 
-// Colors
 constexpr const char* reset = "\033[0m";
 constexpr const char* bold = "\033[1m";
 constexpr const char* dim = "\033[2m";
@@ -16,7 +15,6 @@ constexpr const char* yellow = "\033[33m";
 constexpr const char* red = "\033[31m";
 constexpr const char* magenta = "\033[35m";
 
-// Box drawing characters
 constexpr const char* boxTopLeft = "┌";
 constexpr const char* boxTopRight = "┐";
 constexpr const char* boxBottomLeft = "└";
@@ -27,6 +25,7 @@ constexpr const char* boxDividerLeft = "├";
 constexpr const char* boxDividerRight = "┤";
 
 void initConsole();
+void clearConsole();
 
 bool colorsEnabled();
 std::string color(const std::string& text, const char* colorCode);
@@ -41,21 +40,18 @@ enum class LogLevel {
     Complete
 };
 
-// Une ligne de journal compacte : pictogramme, niveau coloré, puis message.
 void log(LogLevel level, const std::string& text);
 
-// Layout functions
 int getConsoleWidth();
 void drawLine(const char* left, const char* fill, const char* right);
 void separator();
 void drawFooter();
-void printMenu();
-
-// Helpers
 void title(const std::string& text);
 void success(const std::string& text);
 void warning(const std::string& text);
 void error(const std::string& text);
+void info(const std::string& text);
+void item(const std::string& text);
 
 std::string prompt(const std::string& label);
 void waitForEnter();

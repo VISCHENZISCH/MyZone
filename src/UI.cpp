@@ -1,7 +1,10 @@
 #include "../include/UI.hpp"
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <string>
+#include <chrono>
+#include <ctime>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -16,6 +19,14 @@ namespace ui {
 void initConsole() {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
+#endif
+}
+
+void clearConsole() {
+#ifdef _WIN32
+    std::system("cls");
+#else
+    std::system("clear");
 #endif
 }
 
@@ -34,39 +45,42 @@ namespace {
 
 struct LogStyle {
     const char* icon;
-    const char* label;
     const char* colorCode;
 };
 
 LogStyle styleFor(const LogLevel level) {
     switch (level) {
-    case LogLevel::Startup:  return {"▸", "start",    green};
-    case LogLevel::Info:     return {"ℹ", "info",     blue};
-    case LogLevel::Pending:  return {"□", "pending",  magenta};
-    case LogLevel::Success:  return {"✓", "success",  green};
-    case LogLevel::Warning:  return {"…", "watching", yellow};
-    case LogLevel::Error:    return {"■", "error",    red};
-    case LogLevel::Complete: return {"⊠", "complete", cyan};
+    case LogLevel::Startup:  return {"●", green};
+    case LogLevel::Info:     return {"i", blue};
+    case LogLevel::Pending:  return {"·", dim};
+    case LogLevel::Success:  return {"✓", green};
+    case LogLevel::Warning:  return {"!", yellow};
+    case LogLevel::Error:    return {"x", red};
+    case LogLevel::Complete: return {"●", cyan};
     }
-    return {"ℹ", "info", blue};
+    return {"·", dim};
 }
 
-std::string paddedLabel(const char* label) {
-    constexpr std::size_t labelWidth = 8;
-    std::string value(label);
-    if (value.size() < labelWidth) {
-        value.append(labelWidth - value.size(), ' ');
-    }
-    return value;
+std::string currentTime() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t time = std::chrono::system_clock::to_time_t(now);
+    std::tm tm_buf;
+#ifdef _WIN32
+    localtime_s(&tm_buf, &time);
+#else
+    localtime_r(&time, &tm_buf);
+#endif
+    char buf[10];
+    std::strftime(buf, sizeof(buf), "%H:%M:%S", &tm_buf);
+    return std::string(buf);
 }
 
 } // namespace
 
 void log(const LogLevel level, const std::string& text) {
     const LogStyle style = styleFor(level);
-    const std::string label = paddedLabel(style.label);
-    std::cout << color(style.icon, style.colorCode) << "  "
-              << color(label, style.colorCode)
+    std::cout << " " << color(currentTime(), dim) 
+              << "  " << color(style.icon, style.colorCode)
               << "  " << text << '\n';
 }
 
@@ -96,7 +110,7 @@ void drawLine(const char* left, const char* fill, const char* right) {
 }
 
 void separator() {
-    std::cout << color("\\============================================================", blue) << '\n';
+    std::cout << color(std::string(75, '='), cyan) << '\n';
 }
 
 void drawFooter() {
@@ -120,29 +134,25 @@ void error(const std::string& text) {
     log(LogLevel::Error, text);
 }
 
+void info(const std::string& text) {
+    log(LogLevel::Info, text);
+}
+
+void item(const std::string& text) {
+    log(LogLevel::Pending, text);
+}
+
 std::string prompt(const std::string& label) {
-    std::cout << color("▸", magenta) << "  "
-              << color("input   ", magenta)
-              << "  " << label << std::flush;
+    std::cout << " " << color("➤", cyan) << " " << label << std::flush;
     std::string value;
     std::getline(std::cin, value);
     return value;
 }
 
 void waitForEnter() {
-    std::cout << color("…", yellow) << "  "
-              << color("watching", yellow)
-              << "  Appuyez sur Entrée pour continuer..." << std::flush;
+    std::cout << " " << color("➤", yellow) << " Appuyez sur Entrée pour continuer..." << std::flush;
     std::string ignored;
     std::getline(std::cin, ignored);
-}
-
-void printMenu() {
-    std::cout << '\n';
-    separator();
-    log(LogLevel::Info, "Tableau de bord MyZone");
-    log(LogLevel::Pending, "[1] Rechercher un appareil par adresse MAC");
-    log(LogLevel::Pending, "[0] Quitter");
 }
 
 } // namespace ui

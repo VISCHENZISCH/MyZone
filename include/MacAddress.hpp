@@ -5,29 +5,24 @@
 #include <array>
 
 namespace myzone {
-    
+
     class MacAddress {
-        
+
     public:
         MacAddress() = default;
         explicit MacAddress(const std::string& raw);
-        // Les 12 chiffres hexadécimaux de l'adresse, sans séparateur.
         std::string compact() const;
         std::string yes() const;
         std::string toString() const;
         const std::array<unsigned char, 6>& bytes() const { return bytes_;}
         bool isValid() const { return valid_;}
-        
+
     private:
-        // Stck 6 octets de l'adresse MAC
         std::array<unsigned char, 6> bytes_{};
         bool valid_ = false;
         static std::string normalizeInput(const std::string& raw);
     };
-          
+
  };
-
-
-
 
 #endif // MYZONE_MAC_ADDRESS_HPP
