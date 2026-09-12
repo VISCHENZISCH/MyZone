@@ -112,9 +112,6 @@ std::string MacAddress::toString() const {
     return result;
 }
 
-std::string MacAddress::yes() const {
-    const std::string value = compact();
-    return value.size() >= 6 ? value.substr(0, 6) : "";
-}
+
 
 } // namespace myzone

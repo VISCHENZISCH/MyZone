@@ -4,3 +4,4 @@ bin/
 *.layout
 .vscode/
 obj/
+*.exe

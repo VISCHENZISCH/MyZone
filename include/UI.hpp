@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MYZONE_UI_HPP
+#define MYZONE_UI_HPP
 
 #include <string>
 
@@ -58,3 +59,5 @@ void waitForEnter();
 
 } // namespace ui
 } // namespace myzone
+
+#endif // MYZONE_UI_HPP
