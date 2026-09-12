@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -22,7 +23,6 @@
 #include "include/modules/HostnameModule.hpp"
 #include "include/modules/P0fModule.hpp"
 #include "include/modules/FingerBankModule.hpp"
-
 #include "include/UI.hpp"
 
 namespace {
@@ -85,70 +85,72 @@ std::string locateDataDirectory(const char* executable) {
     return "data";
 }
 
-void printBanner() {
-    myzone::ui::separator();
-    std::cout << "  " << myzone::ui::color("MyZone v1.0", myzone::ui::bold) 
-              << "  ·  " << myzone::ui::color("Network Discovery Engine", myzone::ui::cyan) << '\n';
-    myzone::ui::separator();
-}
-
 void printMainMenu() {
     std::cout << '\n';
-    std::cout << "   " << myzone::ui::color("1", myzone::ui::cyan) << "  Identifier un appareil (MAC, DHCP, hostname)\n";
-    std::cout << "   " << myzone::ui::color("2", myzone::ui::cyan) << "  Rechercher une empreinte DHCP connue\n";
-    std::cout << "   " << myzone::ui::color("3", myzone::ui::cyan) << "  Voir les données chargées et les signatures\n";
-    std::cout << "   " << myzone::ui::color("4", myzone::ui::cyan) << "  Lancer une démonstration avec des MAC d'exemple\n";
-    std::cout << "   " << myzone::ui::color("5", myzone::ui::cyan) << "  Afficher l'aide et les limites d'identification\n";
-    std::cout << "   " << myzone::ui::color("0", myzone::ui::red)  << "  Quitter\n\n";
+    std::cout << myzone::ui::tagSuccess() << " " << myzone::ui::color("Options disponibles :", myzone::ui::whiteBright) << "\n\n";
+    std::cout << "  " << myzone::ui::color("[1]", myzone::ui::greenBright) << " Identifier un appareil (MAC, DHCP, hostname, TCP)\n";
+    std::cout << "  " << myzone::ui::color("[2]", myzone::ui::greenBright) << " Rechercher une empreinte DHCP connue\n";
+    std::cout << "  " << myzone::ui::color("[3]", myzone::ui::greenBright) << " Voir le catalogue des sources et signatures\n";
+    std::cout << "  " << myzone::ui::color("[4]", myzone::ui::greenBright) << " Lancer une demonstration avec des cibles d'exemple\n";
+    std::cout << "  " << myzone::ui::color("[5]", myzone::ui::greenBright) << " Afficher l'aide et les limites d'identification\n";
+    std::cout << "  " << myzone::ui::color("[0]", myzone::ui::redBright)   << " Quitter\n\n";
 }
 
 void printProfile(const myzone::DeviceProfile& profile) {
-    myzone::ui::title("RÉSULTAT  /  IDENTIFICATION");
+    std::cout << '\n';
+    std::cout << myzone::ui::tagSuccess() << " " << myzone::ui::color("Resultat d'identification :", myzone::ui::whiteBright) << '\n';
+    myzone::ui::divider('-');
 
     if (profile.mac.isValid()) {
-        myzone::ui::log(myzone::ui::LogLevel::Info,
-                        "Adresse MAC : " + myzone::ui::color(profile.mac.toString(), myzone::ui::cyan));
+        std::cout << "    " << myzone::ui::color("Adresse MAC   : ", myzone::ui::dim)
+                  << myzone::ui::color(profile.mac.toString(), myzone::ui::greenBright) << '\n';
     }
     if (!profile.manufacturer.empty()) {
-        myzone::ui::log(myzone::ui::LogLevel::Info,
-                        "Fabricant : " + myzone::ui::color(profile.manufacturer, myzone::ui::bold));
+        std::cout << "    " << myzone::ui::color("Fabricant     : ", myzone::ui::dim)
+                  << myzone::ui::color(profile.manufacturer, myzone::ui::whiteBright) << '\n';
     }
     if (profile.category != myzone::DeviceCategory::Unknown) {
-        myzone::ui::log(myzone::ui::LogLevel::Info,
-                        "Catégorie : " + myzone::toString(profile.category));
+        std::cout << "    " << myzone::ui::color("Categorie     : ", myzone::ui::dim)
+                  << myzone::ui::color(myzone::toString(profile.category), myzone::ui::cyanBright) << '\n';
     }
     if (!profile.osName.empty()) {
-        myzone::ui::log(myzone::ui::LogLevel::Info,
-                        "OS / Appareil : " + myzone::ui::color(profile.osName, myzone::ui::cyan));
+        std::cout << "    " << myzone::ui::color("OS / Appareil : ", myzone::ui::dim)
+                  << myzone::ui::color(profile.osName, myzone::ui::yellowBright) << '\n';
     }
     if (!profile.deviceModel.empty() && profile.deviceModel != profile.osName) {
-        myzone::ui::log(myzone::ui::LogLevel::Info,
-                        "Modèle : " + myzone::ui::color(profile.deviceModel, myzone::ui::cyan));
+        std::cout << "    " << myzone::ui::color("Modele        : ", myzone::ui::dim)
+                  << myzone::ui::color(profile.deviceModel, myzone::ui::cyanBright) << '\n';
     }
 
     if (!profile.results.empty()) {
-        myzone::ui::log(myzone::ui::LogLevel::Pending, "Modules :");
+        std::cout << '\n';
+        std::cout << "    " << myzone::ui::color("Modules actifs :", myzone::ui::whiteBright) << '\n';
         for (const auto& result : profile.results) {
-            myzone::ui::log(myzone::ui::LogLevel::Info,
-                            "[" + result.moduleName + "]" + result.detail);
+            std::cout << "    " << myzone::ui::tagInfo() << " ["
+                      << myzone::ui::color(result.moduleName, myzone::ui::greenBright) << "] "
+                      << result.detail << '\n';
         }
     }
+    myzone::ui::divider('-');
 }
 
 void identifyDevice(const myzone::IdentificationEngine& engine) {
     std::cout << '\n';
-    std::cout << myzone::ui::color(" [ IDENTIFICATION ]", myzone::ui::bold) << "\n\n";
-    myzone::ui::info("Fournissez les informations disponibles (Entrée pour ignorer)");
-    myzone::ui::info("Formats MAC : AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF ou AABBCCDDEEFF\n");
+    std::cout << myzone::ui::tagSuccess() << " " << myzone::ui::color("Mode Identification d'appareil", myzone::ui::whiteBright) << '\n';
+    myzone::ui::divider('-');
+    std::cout << "  " << myzone::ui::tagInfo() << " Renseignez les elements connus (appuyez sur Entree pour ignorer)\n";
+    std::cout << "  " << myzone::ui::tagInfo() << " Formats MAC : AA:BB:CC:DD:EE:FF | AA-BB-CC-DD-EE-FF | AABBCCDDEEFF\n\n";
 
-    const std::string rawMac = myzone::ui::prompt("Adresse MAC : ");
-    const std::string dhcpFp = myzone::ui::prompt("Empreinte DHCP (hash MD5) : ");
-    const std::string hostname = myzone::ui::prompt("Hostname : ");
-    const std::string tcpSig = myzone::ui::prompt("Signature TCP (p0f) : ");
-    const std::string dhcpOpts = myzone::ui::prompt("Options DHCP (liste, ex: 1,15,3,6) : ");
+    const std::string rawMac   = myzone::ui::prompt("Adresse MAC              : ");
+    const std::string dhcpFp   = myzone::ui::prompt("Empreinte DHCP (hash MD5): ");
+    const std::string hostname = myzone::ui::prompt("Nom d'hote (Hostname)    : ");
+    const std::string tcpSig   = myzone::ui::prompt("Signature TCP (p0f)      : ");
+    const std::string dhcpOpts = myzone::ui::prompt("Options DHCP (ex: 1,3,6) : ");
 
     if (rawMac.empty() && dhcpFp.empty() && hostname.empty() && tcpSig.empty() && dhcpOpts.empty()) {
-        myzone::ui::warning("Aucune donnée fournie.");
+        std::cout << '\n';
+        myzone::ui::warning("Aucune donnee fournie pour l'identification.");
+        myzone::ui::waitForEnter();
         return;
     }
 
@@ -158,6 +160,7 @@ void identifyDevice(const myzone::IdentificationEngine& engine) {
         try {
             input.mac = myzone::MacAddress(rawMac);
         } catch (const std::invalid_argument& e) {
+            std::cout << '\n';
             myzone::ui::error(e.what());
             myzone::ui::waitForEnter();
             return;
@@ -172,7 +175,8 @@ void identifyDevice(const myzone::IdentificationEngine& engine) {
     const myzone::DeviceProfile result = engine.identify(input);
 
     if (!result.hasResults()) {
-        myzone::ui::warning("Aucun module n'a pu identifier cet appareil.");
+        std::cout << '\n';
+        myzone::ui::warning("Aucun module n'a pu identifier cet appareil avec les elements fournis.");
     } else {
         printProfile(result);
     }
@@ -182,82 +186,108 @@ void identifyDevice(const myzone::IdentificationEngine& engine) {
 
 void searchDhcp(const myzone::Database& database) {
     std::cout << '\n';
-    std::cout << myzone::ui::color(" [ RECHERCHE DHCP ]", myzone::ui::bold) << "\n\n";
-    myzone::ui::info("Entrez un hash MD5 d'empreinte DHCP (32 caractères hexadécimaux).\n");
+    std::cout << myzone::ui::tagSuccess() << " " << myzone::ui::color("Recherche d'empreinte DHCP (KYD / FingerBank)", myzone::ui::whiteBright) << '\n';
+    myzone::ui::divider('-');
+    std::cout << "  " << myzone::ui::tagInfo() << " Entrez un hash MD5 d'empreinte DHCP (32 caracteres hexadecimaux)\n\n";
 
     const std::string hash = myzone::ui::prompt("Hash MD5 : ");
     if (hash.empty()) {
+        std::cout << '\n';
         myzone::ui::warning("Aucune empreinte fournie.");
         myzone::ui::waitForEnter();
         return;
     }
 
     myzone::DhcpFingerprintInfo info;
+    std::cout << '\n';
     if (database.lookupDhcpFingerprint(hash, info)) {
-        myzone::ui::title("RÉSULTAT  /  EMPREINTE DHCP");
-        myzone::ui::log(myzone::ui::LogLevel::Info,
-                        "Empreinte : " + myzone::ui::color(info.fingerprint, myzone::ui::cyan));
-        myzone::ui::log(myzone::ui::LogLevel::Info,
-                        "Appareil  : " + myzone::ui::color(info.deviceName, myzone::ui::bold));
+        std::cout << myzone::ui::tagSuccess() << " " << myzone::ui::color("Correspondance DHCP identifiee :", myzone::ui::whiteBright) << '\n';
+        myzone::ui::divider('-');
+        std::cout << "    " << myzone::ui::color("Empreinte : ", myzone::ui::dim)
+                  << myzone::ui::color(info.fingerprint, myzone::ui::cyanBright) << '\n';
+        std::cout << "    " << myzone::ui::color("Appareil  : ", myzone::ui::dim)
+                  << myzone::ui::color(info.deviceName, myzone::ui::whiteBright) << '\n';
         if (!info.requestedOptions.empty()) {
-            myzone::ui::log(myzone::ui::LogLevel::Info,
-                            "Options   : " + info.requestedOptions);
+            std::cout << "    " << myzone::ui::color("Options   : ", myzone::ui::dim)
+                      << info.requestedOptions << '\n';
         }
-        myzone::ui::log(myzone::ui::LogLevel::Info,
-                        "Confiance : " + std::to_string(info.confidence) + " %");
+        std::cout << "    " << myzone::ui::color("Confiance : ", myzone::ui::dim)
+                  << myzone::ui::color(std::to_string(info.confidence) + " %", myzone::ui::greenBright) << '\n';
+        myzone::ui::divider('-');
     } else {
-        myzone::ui::warning("Aucune correspondance trouvée pour ce hash.");
+        myzone::ui::warning("Aucune correspondance trouvee pour ce hash MD5.");
     }
 
     myzone::ui::waitForEnter();
 }
 
+std::string padRight(const std::string& str, std::size_t width) {
+    if (str.size() >= width) return str;
+    return str + std::string(width - str.size(), ' ');
+}
+
+std::string padLeft(const std::string& str, std::size_t width) {
+    if (str.size() >= width) return str;
+    return std::string(width - str.size(), ' ') + str;
+}
+
 void showSources(const myzone::Database& database) {
     std::cout << '\n';
-    std::cout << myzone::ui::color(" [ CATALOGUE DES SOURCES ]", myzone::ui::bold) << "\n\n";
+    std::cout << myzone::ui::tagSuccess() << " " << myzone::ui::color("Catalogue des sources & bases locales", myzone::ui::whiteBright) << '\n';
+    myzone::ui::divider('-');
+    std::cout << "  " << myzone::ui::tagInfo() << " Repertoire des donnees : "
+              << myzone::ui::color(database.dataDirectory(), myzone::ui::cyanBright) << '\n';
+    std::cout << "  " << myzone::ui::tagInfo() << " Total indexes : "
+              << myzone::ui::color(std::to_string(database.vendorCount()), myzone::ui::greenBright) << " OUI  |  "
+              << myzone::ui::color(std::to_string(database.dhcpFingerprintCount()), myzone::ui::greenBright) << " DHCP  |  "
+              << myzone::ui::color(std::to_string(database.p0fSignatureCount()), myzone::ui::greenBright) << " p0f TCP  |  "
+              << myzone::ui::color(std::to_string(database.fingerBankCount()), myzone::ui::greenBright) << " FingerBank\n\n";
 
-    myzone::ui::log(myzone::ui::LogLevel::Info,
-                    "Répertoire des données : " + myzone::ui::color(database.dataDirectory(), myzone::ui::cyan));
-    myzone::ui::log(myzone::ui::LogLevel::Info,
-                    std::to_string(database.vendorCount()) + " préfixes OUI uniques indexés");
-    myzone::ui::log(myzone::ui::LogLevel::Info,
-                    std::to_string(database.dhcpFingerprintCount()) + " empreintes DHCP indexées");
-    myzone::ui::log(myzone::ui::LogLevel::Info,
-                    std::to_string(database.p0fSignatureCount()) + " signatures TCP p0f indexées");
-    myzone::ui::log(myzone::ui::LogLevel::Info,
-                    std::to_string(database.fingerBankCount()) + " listes d'options FingerBank indexées");
+    // En-têtes du tableau style wifite2
+    std::cout << "  "
+              << myzone::ui::color("FICHIER", myzone::ui::greenBright)
+              << std::string(24 - 7, ' ')
+              << myzone::ui::color("ENTREES", myzone::ui::greenBright)
+              << "   "
+              << myzone::ui::color("STATUT", myzone::ui::greenBright)
+              << std::string(12 - 6, ' ')
+              << myzone::ui::color("ROLE / DESCRIPTION", myzone::ui::greenBright)
+              << '\n';
 
-    std::cout << '\n';
-    myzone::ui::log(myzone::ui::LogLevel::Pending, "Détail par source :");
-    std::cout << '\n';
+    std::cout << "  "
+              << std::string(22, '-') << "  "
+              << std::string(8, '-')  << "  "
+              << std::string(10, '-') << "  "
+              << std::string(40, '-') << '\n';
 
     const auto& sources = database.sources();
     for (const auto& source : sources) {
-        const std::string status = source.available
-            ? (source.indexed
-                ? myzone::ui::color("INDEXÉ", myzone::ui::green)
-                : myzone::ui::color("DISPONIBLE", myzone::ui::yellow))
-            : myzone::ui::color("ABSENT", myzone::ui::red);
+        std::string statusText = source.available
+            ? (source.indexed ? "INDEXE" : "DISPONIBLE")
+            : "ABSENT";
 
-        myzone::ui::log(myzone::ui::LogLevel::Info,
-                        myzone::ui::color(source.fileName, myzone::ui::bold));
-        myzone::ui::log(myzone::ui::LogLevel::Pending,
-                        "  Label   : " + source.label);
-        myzone::ui::log(myzone::ui::LogLevel::Pending,
-                        "  Rôle    : " + source.purpose);
-        myzone::ui::log(myzone::ui::LogLevel::Pending,
-                        "  État    : " + status
-                        + (source.records > 0 ? ("  (" + std::to_string(source.records) + " entrées)") : ""));
-        std::cout << '\n';
+        const char* statusColor = source.available
+            ? (source.indexed ? myzone::ui::greenBright : myzone::ui::yellowBright)
+            : myzone::ui::redBright;
+
+        std::string recordsStr = source.records > 0 ? std::to_string(source.records) : "-";
+
+        std::cout << "  "
+                  << padRight(source.fileName, 22) << "  "
+                  << padLeft(recordsStr, 8) << "  "
+                  << myzone::ui::color(padRight(statusText, 10), statusColor) << "  "
+                  << source.purpose << '\n';
     }
 
+    std::cout << '\n';
     myzone::ui::waitForEnter();
 }
 
 void runDemo(const myzone::IdentificationEngine& engine) {
     std::cout << '\n';
-    std::cout << myzone::ui::color(" [ DÉMONSTRATION ]", myzone::ui::bold) << "\n\n";
-    myzone::ui::info("Lancement de l'identification sur des exemples connus.\n");
+    std::cout << myzone::ui::tagSuccess() << " " << myzone::ui::color("Demonstration sur des cibles d'exemple", myzone::ui::whiteBright) << '\n';
+    myzone::ui::divider('-');
+    std::cout << "  " << myzone::ui::tagInfo() << " Evaluation automatique de 10 configurations d'appareils\n\n";
 
     struct DemoEntry {
         std::string label;
@@ -268,98 +298,105 @@ void runDemo(const myzone::IdentificationEngine& engine) {
 
     const std::vector<DemoEntry> demos = {
         {"Apple iPhone (via MAC)",             "AC:DE:48:00:11:22", "",                   ""},
-        {"Samsung Galaxy (via hostname)",      "00:00:00:00:00:00", "Galaxy-S23-Ultra",   ""},
+        {"Samsung Galaxy (via hostname)",      "",                  "Galaxy-S23-Ultra",   ""},
         {"Cisco routeur (via MAC)",            "00:1A:2B:00:00:00", "",                   ""},
         {"Windows PC (via hostname)",          "",                  "DESKTOP-AB1CD2E",    ""},
         {"Google Pixel (via hostname)",        "",                  "Pixel-8-Pro",        ""},
         {"MacBook (via hostname)",             "",                  "MacBook-Pro-de-Tom", ""},
         {"iPad (via hostname)",                "",                  "iPad-de-Marie",      ""},
         {"Raspberry Pi (via MAC)",             "B8:27:EB:12:34:56", "",                   ""},
-        {"TP-Link appareil réseau (via MAC)",  "50:C7:BF:AA:BB:CC", "",                   ""},
+        {"TP-Link appareil (via MAC)",         "50:C7:BF:AA:BB:CC", "",                   ""},
         {"Intel device (via MAC)",             "00:1B:21:00:00:00", "",                   ""},
     };
 
+    // Tableau résumé style hacking
+    std::cout << "  "
+              << myzone::ui::color("NUM", myzone::ui::greenBright) << "   "
+              << myzone::ui::color("CIBLE", myzone::ui::greenBright) << std::string(32 - 5, ' ')
+              << myzone::ui::color("ENTREE", myzone::ui::greenBright) << std::string(22 - 6, ' ')
+              << myzone::ui::color("RESULTAT / IDENTIFICATION", myzone::ui::greenBright) << '\n';
+
+    std::cout << "  "
+              << std::string(4, '-')  << "  "
+              << std::string(30, '-') << "  "
+              << std::string(20, '-') << "  "
+              << std::string(36, '-') << '\n';
+
     for (std::size_t i = 0; i < demos.size(); ++i) {
         const auto& demo = demos[i];
-        myzone::ui::separator();
-        myzone::ui::log(myzone::ui::LogLevel::Startup,
-                        "Exemple " + std::to_string(i + 1) + "/" + std::to_string(demos.size())
-                        + " : " + myzone::ui::color(demo.label, myzone::ui::cyan));
-
         myzone::DeviceProfile input;
-        if (!demo.mac.empty() && demo.mac != "00:00:00:00:00:00") {
-            try {
-                input.mac = myzone::MacAddress(demo.mac);
-            } catch (const std::invalid_argument&) {
-                // Ignore invalid demo MACs
-            }
+
+        std::string testValue;
+        if (!demo.mac.empty()) {
+            try { input.mac = myzone::MacAddress(demo.mac); testValue = demo.mac; } catch (...) {}
         }
-        input.hostname = demo.hostname;
-        input.dhcpOptions = demo.dhcpOptions;
+        if (!demo.hostname.empty()) {
+            input.hostname = demo.hostname;
+            if (testValue.empty()) testValue = demo.hostname;
+        }
 
         const myzone::DeviceProfile result = engine.identify(input);
 
-        if (!result.hasResults()) {
-            myzone::ui::warning("Aucun résultat pour cet exemple.");
-        } else {
-            printProfile(result);
+        std::string identification;
+        if (!result.manufacturer.empty()) {
+            identification = result.manufacturer;
         }
-        std::cout << '\n';
+        if (result.category != myzone::DeviceCategory::Unknown) {
+            if (!identification.empty()) identification += " [";
+            identification += myzone::toString(result.category);
+            if (!result.manufacturer.empty()) identification += "]";
+        } else if (!result.osName.empty()) {
+            if (!identification.empty()) identification += " [";
+            identification += result.osName;
+            if (!result.manufacturer.empty()) identification += "]";
+        }
+
+        if (identification.empty()) {
+            identification = myzone::ui::color("Inconnu", myzone::ui::dim);
+        }
+
+        std::string numStr = "[" + std::to_string(i + 1) + "]";
+        std::cout << "  "
+                  << myzone::ui::color(padRight(numStr, 4), myzone::ui::greenBright) << "  "
+                  << padRight(demo.label, 30) << "  "
+                  << myzone::ui::color(padRight(testValue, 20), myzone::ui::cyanBright) << "  "
+                  << identification << '\n';
     }
 
+    std::cout << '\n';
     myzone::ui::waitForEnter();
 }
 
 void showHelp() {
     std::cout << '\n';
-    std::cout << myzone::ui::color(" [ AIDE  /  LIMITES D'IDENTIFICATION ]", myzone::ui::bold) << "\n\n";
+    std::cout << myzone::ui::tagSuccess() << " " << myzone::ui::color("Aide & Limites d'identification MyZone", myzone::ui::whiteBright) << '\n';
+    myzone::ui::divider('-');
 
-    myzone::ui::title("QU'EST-CE QUE MYZONE ?");
-    myzone::ui::info("MyZone est un outil d'identification locale d'appareils réseau.");
-    myzone::ui::info("Il combine plusieurs sources de données pour identifier un appareil");
-    myzone::ui::info("à partir de son adresse MAC, son hostname, son empreinte DHCP ou");
-    myzone::ui::info("sa signature TCP.\n");
+    std::cout << '\n' << "  " << myzone::ui::color("MODULES D'IDENTIFICATION :", myzone::ui::greenBright) << '\n';
+    std::cout << "    " << myzone::ui::tagSuccess() << " " << myzone::ui::color("OUI", myzone::ui::whiteBright)
+              << "         Identifie le constructeur via le prefixe MAC (IEEE / Wireshark / Nmap)\n";
+    std::cout << "    " << myzone::ui::tagSuccess() << " " << myzone::ui::color("DHCP", myzone::ui::whiteBright)
+              << "        Recherche le modele et l'OS par hash MD5 d'options DHCP (KYD / FingerBank)\n";
+    std::cout << "    " << myzone::ui::tagSuccess() << " " << myzone::ui::color("Hostname", myzone::ui::whiteBright)
+              << "    Analyse heuristique du nom d'hote reseau (ex: Apple, Samsung, Windows)\n";
+    std::cout << "    " << myzone::ui::tagSuccess() << " " << myzone::ui::color("p0f TCP", myzone::ui::whiteBright)
+              << "     Identification passive de l'OS par signature SYN TCP/IP (p0f v3)\n";
+    std::cout << "    " << myzone::ui::tagSuccess() << " " << myzone::ui::color("FingerBank", myzone::ui::whiteBright)
+              << "  Identification de l'OS via la liste ordonnee d'options DHCP demandees\n";
 
-    myzone::ui::title("MODULES D'IDENTIFICATION");
-    myzone::ui::log(myzone::ui::LogLevel::Success,
-                    myzone::ui::color("OUI", myzone::ui::bold)
-                    + "         Identifie le fabricant via le préfixe MAC (OUI).");
-    myzone::ui::log(myzone::ui::LogLevel::Success,
-                    myzone::ui::color("DHCP", myzone::ui::bold)
-                    + "        Recherche d'un appareil par hash MD5 d'empreinte DHCP.");
-    myzone::ui::log(myzone::ui::LogLevel::Success,
-                    myzone::ui::color("Hostname", myzone::ui::bold)
-                    + "    Détecte l'OS et le type d'appareil à partir du hostname.");
-    myzone::ui::log(myzone::ui::LogLevel::Success,
-                    myzone::ui::color("p0f TCP", myzone::ui::bold)
-                    + "     Identifie l'OS via les signatures TCP passives (p0f).");
-    myzone::ui::log(myzone::ui::LogLevel::Success,
-                    myzone::ui::color("FingerBank", myzone::ui::bold)
-                    + "  Recherche l'OS par la liste d'options DHCP demandées.\n");
+    std::cout << '\n' << "  " << myzone::ui::color("FORMATS ACCEPTES :", myzone::ui::greenBright) << '\n';
+    std::cout << "    " << myzone::ui::tagInfo() << " Adresse MAC   : AA:BB:CC:DD:EE:FF | AA-BB-CC-DD-EE-FF | AABBCCDDEEFF\n";
+    std::cout << "    " << myzone::ui::tagInfo() << " Hash DHCP     : Chaine hexadecimale de 32 caracteres (MD5)\n";
+    std::cout << "    " << myzone::ui::tagInfo() << " Hostname      : Nom machine NetBIOS / mDNS (ex: DESKTOP-AB1CD2E, iPhone-de-Tom)\n";
+    std::cout << "    " << myzone::ui::tagInfo() << " Signature TCP : Signature au format p0f (ex: *:64:0:*:mss*20,7:mss,sok,...)\n";
+    std::cout << "    " << myzone::ui::tagInfo() << " Options DHCP  : Liste d'options separees par virgules (ex: 1,15,3,6,44)\n";
 
-    myzone::ui::title("FORMATS ACCEPTÉS");
-    myzone::ui::info("Adresse MAC   :  AA:BB:CC:DD:EE:FF  ou  AA-BB-CC-DD-EE-FF  ou  AABBCCDDEEFF");
-    myzone::ui::info("Hash DHCP     :  Chaîne de 32 caractères hexadécimaux (MD5)");
-    myzone::ui::info("Hostname      :  Nom réseau de l'appareil (ex: DESKTOP-AB1CD2E, iPhone-de-Tom)");
-    myzone::ui::info("Signature TCP :  Signature au format p0f (ex: *:64:0:*:mss*20,7:mss,sok,...)");
-    myzone::ui::info("Options DHCP  :  Liste d'options séparées par des virgules (ex: 1,15,3,6,44)\n");
-
-    myzone::ui::title("LIMITES");
-    myzone::ui::warning("Une adresse MAC identifie un bloc attribué à un fabricant, pas un modèle exact.");
-    myzone::ui::warning("Certains appareils usurpent (spoof) leur MAC : l'identification peut être fausse.");
-    myzone::ui::warning("Le hostname peut être changé manuellement par l'utilisateur.");
-    myzone::ui::warning("Les modules fonctionnent par heuristique, pas par certitude absolue.");
-    myzone::ui::warning("MyZone ne scanne pas le réseau et n'envoie aucune donnée.\n");
-
-    myzone::ui::title("SOURCES DE DONNÉES");
-    myzone::ui::info("Les bases proviennent de projets open-source reconnus :");
-    myzone::ui::log(myzone::ui::LogLevel::Pending, "  • IEEE OUI via lookup.csv (référentiel principal)");
-    myzone::ui::log(myzone::ui::LogLevel::Pending, "  • Wireshark manuf (compléments fabricants)");
-    myzone::ui::log(myzone::ui::LogLevel::Pending, "  • Nmap mac-prefixes (compléments fabricants)");
-    myzone::ui::log(myzone::ui::LogLevel::Pending, "  • KYD / FingerBank (empreintes DHCP)");
-    myzone::ui::log(myzone::ui::LogLevel::Pending, "  • p0f (signatures TCP/IP passives)");
-    myzone::ui::log(myzone::ui::LogLevel::Pending, "  • FingerBank dhcp_fingerprints.conf (options DHCP)");
-    myzone::ui::log(myzone::ui::LogLevel::Pending, "  • Nmap OS DB et service probes (disponibles, non indexés)\n");
+    std::cout << '\n' << "  " << myzone::ui::color("LIMITES & CONDITIONS D'AUDIT :", myzone::ui::yellowBright) << '\n';
+    std::cout << "    " << myzone::ui::tagWarning() << " L'adresse MAC identifie un bloc attribue a un constructeur, pas un modele unique.\n";
+    std::cout << "    " << myzone::ui::tagWarning() << " Les adresses MAC randomisees (Wi-Fi prive iOS/Android) masquent le fabricant officiel.\n";
+    std::cout << "    " << myzone::ui::tagWarning() << " Le nom d'hote (hostname) peut etre modifie arbitrairement par l'utilisateur.\n";
+    std::cout << "    " << myzone::ui::tagWarning() << " Les modules fonctionnent par heuristique et correlations passives.\n";
+    std::cout << "    " << myzone::ui::tagWarning() << " MyZone est 100% passif et local : aucune trame n'est envoyee sur le reseau.\n\n";
 
     myzone::ui::waitForEnter();
 }
@@ -380,8 +417,8 @@ CliArgs parseArgs(int argc, char* argv[]) {
     CliArgs args;
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
-        if (arg == "--help") args.help = true;
-        else if (arg == "--version") args.version = true;
+        if (arg == "--help" || arg == "-h") args.help = true;
+        else if (arg == "--version" || arg == "-v") args.version = true;
         else if (arg == "--json") args.json = true;
         else if (arg == "--mac" && i + 1 < argc) { args.mac = argv[++i]; args.hasIdArg = true; }
         else if (arg == "--hostname" && i + 1 < argc) { args.hostname = argv[++i]; args.hasIdArg = true; }
@@ -393,54 +430,29 @@ CliArgs parseArgs(int argc, char* argv[]) {
 }
 
 void printCliHelp() {
-    std::cout << "MyZone v1.0 — Network Discovery Engine\n\n"
-              << "Usage:\n"
-              << "  MyZone                                      Mode interactif\n"
-              << "  MyZone --mac AA:BB:CC:DD:EE:FF [options]    Identification directe\n\n"
+    myzone::ui::banner();
+    std::cout << "Usage:\n"
+              << "  MyZone                                      Mode interactif console\n"
+              << "  MyZone --mac AA:BB:CC:DD:EE:FF [options]    Identification directe en ligne de commande\n\n"
               << "Options:\n"
-              << "  --mac <address>        Adresse MAC\n"
-              << "  --hostname <name>      Hostname réseau\n"
-              << "  --dhcp <hash>          Hash MD5 DHCP\n"
+              << "  --mac <address>        Adresse MAC de l'appareil\n"
+              << "  --hostname <name>      Nom d'hote reseau\n"
+              << "  --dhcp <hash>          Hash MD5 de signature DHCP\n"
               << "  --tcp <signature>      Signature TCP (p0f)\n"
               << "  --dhcp-options <list>  Options DHCP (ex: 1,15,3,6)\n"
-              << "  --json                 Sortie au format JSON\n"
-              << "  --help                 Afficher cette aide\n"
-              << "  --version              Afficher la version\n";
+              << "  --json                 Sortie stricte au format JSON (scriptable)\n"
+              << "  --help, -h             Afficher cette aide\n"
+              << "  --version, -v          Afficher la version\n";
 }
 
 } // namespace
 
 int main(int argc, char* argv[]) {
     myzone::ui::initConsole();
-    printBanner();
 
-    const std::string dataDirectory = locateDataDirectory(argc > 0 ? argv[0] : "MyZone");
-    myzone::ui::log(myzone::ui::LogLevel::Startup, "Démarrage de MyZone");
-    myzone::ui::log(myzone::ui::LogLevel::Pending, "Chargement des référentiels réseau...");
-    
-    myzone::ui::info("Répertoire des données : " + dataDirectory);
-    const myzone::Database database(dataDirectory);
-
-    if (!database.isReady()) {
-        myzone::ui::error("Aucune source OUI n'a été chargée. Vérifiez le dossier data/.");
-        return 1;
-    }
-
-    myzone::ui::success(std::to_string(database.vendorCount()) + " préfixes OUI indexés");
-    myzone::ui::success(std::to_string(database.dhcpFingerprintCount()) + " empreintes DHCP indexées");
-    myzone::ui::success(std::to_string(database.p0fSignatureCount()) + " signatures TCP p0f indexées");
-    myzone::ui::success(std::to_string(database.fingerBankCount()) + " listes d'options FingerBank indexées");
-
-    myzone::IdentificationEngine engine;
-    engine.addModule(std::make_unique<myzone::OuiModule>(database));
-    engine.addModule(std::make_unique<myzone::DhcpModule>(database));
-    engine.addModule(std::make_unique<myzone::HostnameModule>());
-    engine.addModule(std::make_unique<myzone::P0fModule>(database));
-    engine.addModule(std::make_unique<myzone::FingerBankModule>(database));
-
-    myzone::ui::success(std::to_string(engine.moduleCount()) + " modules d'identification actifs");
-
+    // 1. Analyse précoce des arguments de ligne de commande
     CliArgs args = parseArgs(argc, argv);
+
     if (args.help) {
         printCliHelp();
         return 0;
@@ -449,6 +461,45 @@ int main(int argc, char* argv[]) {
         std::cout << "MyZone v1.0\n";
         return 0;
     }
+
+    // 2. En mode JSON, désactiver tous les messages et bannières textuels
+    if (args.json) {
+        myzone::ui::setQuiet(true);
+    } else if (!args.hasIdArg) {
+        // En mode interactif complet, afficher la bannière
+        myzone::ui::banner();
+    }
+
+    // 3. Chargement des référentiels
+    const std::string dataDirectory = locateDataDirectory(argc > 0 ? argv[0] : "MyZone");
+    if (!args.json) {
+        std::cout << myzone::ui::tagInfo() << " Chargement des bases de signatures ("
+                  << myzone::ui::color(dataDirectory, myzone::ui::cyanBright) << ")...\n";
+    }
+
+    const myzone::Database database(dataDirectory);
+
+    if (!database.isReady()) {
+        myzone::ui::error("Aucune source OUI n'a ete chargee. Verifiez le dossier data/.");
+        return 1;
+    }
+
+    myzone::IdentificationEngine engine;
+    engine.addModule(std::make_unique<myzone::OuiModule>(database));
+    engine.addModule(std::make_unique<myzone::DhcpModule>(database));
+    engine.addModule(std::make_unique<myzone::HostnameModule>());
+    engine.addModule(std::make_unique<myzone::P0fModule>(database));
+    engine.addModule(std::make_unique<myzone::FingerBankModule>(database));
+
+    if (!args.json && !args.hasIdArg) {
+        std::cout << myzone::ui::tagSuccess() << " " << database.vendorCount() << " prefixes OUI indexes\n";
+        std::cout << myzone::ui::tagSuccess() << " " << database.dhcpFingerprintCount() << " empreintes DHCP indexees\n";
+        std::cout << myzone::ui::tagSuccess() << " " << database.p0fSignatureCount() << " signatures TCP p0f indexees\n";
+        std::cout << myzone::ui::tagSuccess() << " " << database.fingerBankCount() << " listes d'options FingerBank indexees\n";
+        std::cout << myzone::ui::tagSuccess() << " " << engine.moduleCount() << " modules d'identification prets\n";
+    }
+
+    // 4. Exécution directe CLI avec arguments
     if (args.hasIdArg) {
         myzone::DeviceProfile input;
         if (!args.mac.empty()) {
@@ -468,16 +519,17 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    // 5. Boucle interactive principale
     bool firstMenu = true;
     while (true) {
         if (!firstMenu) {
             myzone::ui::clearConsole();
-            printBanner();
+            myzone::ui::banner();
         }
         firstMenu = false;
-        
+
         printMainMenu();
-        const std::string choice = myzone::ui::prompt("Votre choix : ");
+        const std::string choice = myzone::ui::prompt("Choix : ");
         if (!std::cin) {
             std::cout << '\n';
             break;
@@ -485,33 +537,32 @@ int main(int argc, char* argv[]) {
 
         if (choice == "1") {
             myzone::ui::clearConsole();
-            printBanner();
+            myzone::ui::banner();
             identifyDevice(engine);
         } else if (choice == "2") {
             myzone::ui::clearConsole();
-            printBanner();
+            myzone::ui::banner();
             searchDhcp(database);
         } else if (choice == "3") {
             myzone::ui::clearConsole();
-            printBanner();
+            myzone::ui::banner();
             showSources(database);
         } else if (choice == "4") {
             myzone::ui::clearConsole();
-            printBanner();
+            myzone::ui::banner();
             runDemo(engine);
         } else if (choice == "5") {
             myzone::ui::clearConsole();
-            printBanner();
+            myzone::ui::banner();
             showHelp();
         } else if (choice == "0" || choice == "q" || choice == "Q") {
             break;
         } else {
-            myzone::ui::warning("Choix inconnu.");
+            myzone::ui::warning("Option inconnue. Entrez un chiffre de 0 a 5.");
         }
     }
 
     std::cout << '\n';
-    myzone::ui::separator();
-    myzone::ui::log(myzone::ui::LogLevel::Complete, "Session MyZone terminée.");
+    myzone::ui::drawFooter();
     return 0;
 }

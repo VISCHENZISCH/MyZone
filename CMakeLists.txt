@@ -21,3 +21,6 @@ if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
 endif()
 
 file(COPY data DESTINATION ${CMAKE_BINARY_DIR})
+
+enable_testing()
+add_test(NAME MyZoneUnitTests COMMAND MyZoneTests)

@@ -3,8 +3,6 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <chrono>
-#include <ctime>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -16,6 +14,10 @@
 namespace myzone {
 namespace ui {
 
+namespace {
+bool g_quiet = false;
+}
+
 void initConsole() {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
@@ -23,6 +25,7 @@ void initConsole() {
 }
 
 void clearConsole() {
+    if (g_quiet) return;
 #ifdef _WIN32
     HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hStdOut == INVALID_HANDLE_VALUE) return;
@@ -43,58 +46,66 @@ bool colorsEnabled() {
     return std::getenv("NO_COLOR") == nullptr;
 }
 
+void setQuiet(bool quiet) {
+    g_quiet = quiet;
+}
+
+bool isQuiet() {
+    return g_quiet;
+}
+
 std::string color(const std::string& text, const char* colorCode) {
-    if (!colorsEnabled()) {
+    if (!colorsEnabled() || text.empty()) {
         return text;
     }
     return std::string(colorCode) + text + reset;
 }
 
-namespace {
-
-struct LogStyle {
-    const char* icon;
-    const char* colorCode;
-};
-
-LogStyle styleFor(const LogLevel level) {
-    switch (level) {
-    case LogLevel::Startup:  return {"●", green};
-    case LogLevel::Info:     return {"i", blue};
-    case LogLevel::Pending:  return {"·", dim};
-    case LogLevel::Success:  return {"✓", green};
-    case LogLevel::Warning:  return {"!", yellow};
-    case LogLevel::Error:    return {"x", red};
-    case LogLevel::Complete: return {"●", cyan};
-    }
-    return {"·", dim};
+std::string tagSuccess() {
+    return color("[+]", greenBright);
 }
 
-std::string currentTime() {
-    auto now = std::chrono::system_clock::now();
-    std::time_t time = std::chrono::system_clock::to_time_t(now);
-    std::tm tm_buf;
-#ifdef _WIN32
-    localtime_s(&tm_buf, &time);
-#else
-    localtime_r(&time, &tm_buf);
-#endif
-    char buf[10];
-    std::strftime(buf, sizeof(buf), "%H:%M:%S", &tm_buf);
-    return std::string(buf);
+std::string tagInfo() {
+    return color("[*]", cyanBright);
 }
 
-} // namespace
+std::string tagWarning() {
+    return color("[!]", yellowBright);
+}
+
+std::string tagError() {
+    return color("[-]", redBright);
+}
+
+std::string tagPrompt() {
+    return color("[?]", cyanBright);
+}
 
 void log(const LogLevel level, const std::string& text) {
-    const LogStyle style = styleFor(level);
-    std::cout << " " << color(currentTime(), dim) 
-              << "  " << color(style.icon, style.colorCode)
-              << "  " << text << '\n';
+    if (g_quiet) return;
+    std::string tag;
+    switch (level) {
+    case LogLevel::Startup:
+    case LogLevel::Info:
+    case LogLevel::Pending:
+        tag = tagInfo();
+        break;
+    case LogLevel::Success:
+    case LogLevel::Complete:
+        tag = tagSuccess();
+        break;
+    case LogLevel::Warning:
+        tag = tagWarning();
+        break;
+    case LogLevel::Error:
+        tag = tagError();
+        break;
+    }
+    std::cout << tag << " " << text << '\n';
 }
 
 int getConsoleWidth() {
-    int width = 80;
+    int width = 77;
 #ifdef _WIN32
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
@@ -106,60 +117,94 @@ int getConsoleWidth() {
         width = w.ws_col;
     }
 #endif
-    return width < 40 ? 80 : width;
+    return width < 40 ? 77 : (width > 90 ? 77 : width);
+}
+
+void separator(char fillChar, int length) {
+    if (g_quiet) return;
+    int len = length > 0 ? length : getConsoleWidth();
+    std::cout << color(std::string(len, fillChar), dim) << '\n';
+}
+
+void divider(char fillChar, int length) {
+    if (g_quiet) return;
+    int len = length > 0 ? length : getConsoleWidth();
+    std::cout << color(std::string(len, fillChar), dim) << '\n';
 }
 
 void drawLine(const char* left, const char* fill, const char* right) {
+    if (g_quiet) return;
     int width = getConsoleWidth();
-    std::cout << color(left, blue);
+    std::cout << color(left, dim);
     for (int i = 0; i < width - 2; ++i) {
-        std::cout << color(fill, blue);
+        std::cout << color(fill, dim);
     }
-    std::cout << color(right, blue) << '\n';
-}
-
-void separator() {
-    std::cout << color(std::string(75, '='), cyan) << '\n';
+    std::cout << color(right, dim) << '\n';
 }
 
 void drawFooter() {
-    separator();
-    log(LogLevel::Complete, "Session MyZone terminée.");
+    if (g_quiet) return;
+    separator('=');
+    std::cout << tagSuccess() << " " << color("Session MyZone terminee.", greenBright) << '\n';
+}
+
+void banner() {
+    if (g_quiet) return;
+    std::cout << '\n';
+    std::cout << color("  __  __       ____                  ", greenBright) << '\n';
+    std::cout << color(" |  \\/  |_   _|__  /___  _ __   ___  ", greenBright) << " " << color("v1.0", cyanBright) << '\n';
+    std::cout << color(" | |\\/| | | | | / // _ \\| '_ \\ / _ \\ ", greenBright) << '\n';
+    std::cout << color(" | |  | | |_| |/ /| (_) | | | |  __/ ", greenBright) << " " << color("local network discovery & device auditor", dim) << '\n';
+    std::cout << color(" |_|  |_|\\__, /____\\___/|_| |_|\\___| ", greenBright) << " " << color("https://github.com/VISCHENZISCH/MyZone", cyan) << '\n';
+    std::cout << color("         |___/                       ", greenBright) << '\n';
+    separator('=');
+}
+
+void section(const std::string& text) {
+    if (g_quiet) return;
+    std::cout << '\n' << tagSuccess() << " " << color(text, whiteBright) << '\n';
 }
 
 void title(const std::string& text) {
-    log(LogLevel::Startup, text);
+    if (g_quiet) return;
+    std::cout << '\n' << tagSuccess() << " " << color(text, whiteBright) << '\n';
 }
 
 void success(const std::string& text) {
-    log(LogLevel::Success, text);
+    if (g_quiet) return;
+    std::cout << tagSuccess() << " " << text << '\n';
 }
 
 void warning(const std::string& text) {
-    log(LogLevel::Warning, text);
+    if (g_quiet) return;
+    std::cout << tagWarning() << " " << color(text, yellow) << '\n';
 }
 
 void error(const std::string& text) {
-    log(LogLevel::Error, text);
+    if (g_quiet) return;
+    std::cout << tagError() << " " << color(text, redBright) << '\n';
 }
 
 void info(const std::string& text) {
-    log(LogLevel::Info, text);
+    if (g_quiet) return;
+    std::cout << tagInfo() << " " << text << '\n';
 }
 
 void item(const std::string& text) {
-    log(LogLevel::Pending, text);
+    if (g_quiet) return;
+    std::cout << "    [-] " << text << '\n';
 }
 
 std::string prompt(const std::string& label) {
-    std::cout << " " << color("➤", cyan) << " " << label << std::flush;
+    std::cout << tagPrompt() << " " << color(label, whiteBright) << std::flush;
     std::string value;
     std::getline(std::cin, value);
     return value;
 }
 
 void waitForEnter() {
-    std::cout << " " << color("➤", yellow) << " Appuyez sur Entrée pour continuer..." << std::flush;
+    if (g_quiet) return;
+    std::cout << '\n' << tagPrompt() << " " << color("Appuyez sur Entree pour continuer...", dim) << std::flush;
     std::string ignored;
     std::getline(std::cin, ignored);
 }
