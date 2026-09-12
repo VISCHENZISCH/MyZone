@@ -35,6 +35,10 @@ struct TestRegistrar {
     }
 };
 
+struct TestAbortException : std::exception {
+    const char* what() const noexcept override { return "Fatal assertion failed"; }
+};
+
 inline void assertImpl(bool condition,
                        const std::string& expr,
                        const std::string& file,
@@ -45,6 +49,21 @@ inline void assertImpl(bool condition,
         ++failCount();
         std::cerr << "  ECHEC  " << file << ":" << line
                   << "  ->  " << expr << std::endl;
+    }
+}
+
+inline void assertIntEqualImpl(long long actual, long long expected,
+                               const std::string& exprActual,
+                               const std::string& exprExpected,
+                               const std::string& file, int line) {
+    if (actual == expected) {
+        ++passCount();
+    } else {
+        ++failCount();
+        std::cerr << "  ECHEC  " << file << ":" << line
+                  << "  ->  " << exprActual << " == " << exprExpected
+                  << "  (obtenu: " << actual << ", attendu: " << expected << ")"
+                  << std::endl;
     }
 }
 
@@ -115,6 +134,27 @@ inline int runAllTests() {
     myzone::test::assertEqualImpl( \
         std::string(actual), std::string(expected), \
         #actual, #expected, __FILE__, __LINE__)
+
+#define ASSERT_FATAL(expr) \
+    do { \
+        if (!(expr)) { \
+            ++myzone::test::failCount(); \
+            std::cerr << "  FATAL  " << __FILE__ << ":" << __LINE__ \
+                      << "  ->  " << #expr << std::endl; \
+            throw myzone::test::TestAbortException(); \
+        } \
+        ++myzone::test::passCount(); \
+    } while (false)
+
+#define ASSERT_INT_EQ(actual, expected) \
+    myzone::test::assertIntEqualImpl( \
+        static_cast<long long>(actual), static_cast<long long>(expected), \
+        #actual, #expected, __FILE__, __LINE__)
+
+#define ASSERT_NE(actual, expected) \
+    myzone::test::assertImpl( \
+        std::string(actual) != std::string(expected), \
+        #actual " != " #expected, __FILE__, __LINE__)
 
 #define ASSERT_THROWS(expr, exType) \
     do { \

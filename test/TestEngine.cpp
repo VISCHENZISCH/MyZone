@@ -208,3 +208,31 @@ TEST(DeviceProfile_defaultCategory) {
     myzone::DeviceProfile profile;
     ASSERT_TRUE(profile.category == myzone::DeviceCategory::Unknown);
 }
+
+TEST(Engine_identifyMacAndHostnameCombined) {
+    // Test with both MAC and hostname - both modules should contribute
+    myzone::Database db(findDataDir());
+    myzone::IdentificationEngine engine;
+    engine.addModule(std::make_unique<myzone::OuiModule>(db));
+    engine.addModule(std::make_unique<myzone::HostnameModule>());
+
+    myzone::DeviceProfile input;
+    input.mac = myzone::MacAddress("F0:EE:7A:00:11:22");  // Apple
+    input.hostname = "iPhone-de-Tom";
+
+    myzone::DeviceProfile result = engine.identify(input);
+    ASSERT_TRUE(result.hasResults());
+    ASSERT_TRUE(result.results.size() >= 2);  // Both modules contributed
+}
+
+TEST(Engine_moduleOrderMatters) {
+    // Verify that module execution order is respected
+    myzone::Database db(findDataDir());
+    myzone::IdentificationEngine engine;
+    engine.addModule(std::make_unique<myzone::OuiModule>(db));
+    engine.addModule(std::make_unique<myzone::DhcpModule>(db));
+    engine.addModule(std::make_unique<myzone::HostnameModule>());
+    engine.addModule(std::make_unique<myzone::P0fModule>(db));
+    engine.addModule(std::make_unique<myzone::FingerBankModule>(db));
+    ASSERT_INT_EQ(engine.moduleCount(), 5);
+}

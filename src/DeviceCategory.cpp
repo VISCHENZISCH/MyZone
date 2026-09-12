@@ -1,28 +1,33 @@
 #include "../include/DeviceCategory.hpp"
+#include <unordered_map>
 
 namespace myzone {
 
 	DeviceCategory classifyFromDeviceType(const std::string& deviceType) {
+		static const std::unordered_map<std::string, DeviceCategory> categoryMap = {
+			{"Computer", DeviceCategory::Computer},
+			{"Phone", DeviceCategory::Mobile},
+			{"Tablet", DeviceCategory::Tablet},
+			{"Server", DeviceCategory::Server},
+			{"VM", DeviceCategory::VirtualMachine},
+			{"Router", DeviceCategory::Router},
+			{"Switch", DeviceCategory::Switch},
+			{"Modem", DeviceCategory::Modem},
+			{"AP", DeviceCategory::AccessPoint},
+			{"IoT", DeviceCategory::IoT},
+			{"SmartHome", DeviceCategory::SmartHome},
+			{"Camera", DeviceCategory::Camera},
+			{"Printer", DeviceCategory::Printer},
+			{"TV", DeviceCategory::SmartTV},
+			{"Console", DeviceCategory::GamingConsole},
+			{"Wearable", DeviceCategory::Wearable},
+			{"Audio", DeviceCategory::Audio}
+		};
 
-		if (deviceType == "Computer")       return DeviceCategory::Computer;
-		if (deviceType == "Phone")          return DeviceCategory::Mobile;
-		if (deviceType == "Tablet")         return DeviceCategory::Tablet;
-		if (deviceType == "Server")         return DeviceCategory::Server;
-		if (deviceType == "VM")             return DeviceCategory::VirtualMachine;
-
-		if (deviceType == "Router")         return DeviceCategory::Router;
-		if (deviceType == "Switch")         return DeviceCategory::Switch;
-		if (deviceType == "Modem")          return DeviceCategory::Modem;
-		if (deviceType == "AP")             return DeviceCategory::AccessPoint;
-
-		if (deviceType == "IoT")            return DeviceCategory::IoT;
-		if (deviceType == "SmartHome")      return DeviceCategory::SmartHome;
-		if (deviceType == "Camera")         return DeviceCategory::Camera;
-		if (deviceType == "Printer")        return DeviceCategory::Printer;
-		if (deviceType == "TV")             return DeviceCategory::SmartTV;
-		if (deviceType == "Console")        return DeviceCategory::GamingConsole;
-		if (deviceType == "Wearable")       return DeviceCategory::Wearable;
-		if (deviceType == "Audio")          return DeviceCategory::Audio;
+		auto it = categoryMap.find(deviceType);
+		if (it != categoryMap.end()) {
+			return it->second;
+		}
 
 		return DeviceCategory::Unknown;
 	}

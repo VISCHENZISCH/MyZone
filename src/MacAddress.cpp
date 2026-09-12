@@ -112,6 +112,46 @@ std::string MacAddress::toString() const {
     return result;
 }
 
+bool MacAddress::operator==(const MacAddress& other) const {
+    if (valid_ != other.valid_) return false;
+    if (!valid_) return true;
+    return bytes_ == other.bytes_;
+}
 
+bool MacAddress::operator!=(const MacAddress& other) const {
+    return !(*this == other);
+}
+
+bool MacAddress::operator<(const MacAddress& other) const {
+    if (valid_ != other.valid_) {
+        return valid_ < other.valid_; // invalid < valid
+    }
+    if (!valid_) {
+        return false;
+    }
+    return bytes_ < other.bytes_;
+}
+
+std::optional<MacAddress> MacAddress::tryParse(const std::string& raw) noexcept {
+    try {
+        return MacAddress(raw);
+    } catch (const std::invalid_argument&) {
+        return std::nullopt;
+    }
+}
 
 } // namespace myzone
+
+namespace std {
+std::size_t hash<myzone::MacAddress>::operator()(const myzone::MacAddress& mac) const noexcept {
+    if (!mac.isValid()) {
+        return 0;
+    }
+    std::size_t h = 14695981039346656037ULL;
+    for (unsigned char b : mac.bytes()) {
+        h ^= b;
+        h *= 1099511628211ULL;
+    }
+    return h;
+}
+}

@@ -4,4 +4,9 @@ bin/
 *.layout
 .vscode/
 obj/
-*.exe
+*.exe
+
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile

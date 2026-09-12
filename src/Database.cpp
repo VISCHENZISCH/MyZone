@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string_view>
@@ -147,19 +148,6 @@ std::string tabField(const std::string& line, const std::size_t index) {
     return trim(line.substr(begin, end == std::string::npos ? std::string::npos : end - begin));
 }
 
-std::string joinPath(const std::string& directory, const std::string& filename) {
-    if (directory.empty() || directory == ".") {
-        return filename;
-    }
-    const char last = directory.back();
-    return directory + (last == '/' || last == '\\' ? "" : "/") + filename;
-}
-
-bool fileExists(const std::string& filePath) {
-    std::ifstream file(filePath);
-    return file.good();
-}
-
 } // namespace
 
 Database::Database(const std::string& dataDirectory) : dataDirectory_(dataDirectory) {
@@ -171,13 +159,13 @@ Database::Database(const std::string& dataDirectory) : dataDirectory_(dataDirect
     p0fData_.reserve(1024);
     sources_.reserve(9);
 
-    loadLookupCsv(joinPath(dataDirectory_, "lookup.csv"));
-    loadManufFile(joinPath(dataDirectory_, "manuf"), "Wireshark manuf");
-    loadManufFile(joinPath(dataDirectory_, "wireshark-manuf.txt"), "Wireshark manuf historique");
-    loadNmapPrefixes(joinPath(dataDirectory_, "nmap-mac-prefixes.txt"));
-    loadDhcpFingerprints(joinPath(dataDirectory_, "kyd-dhcp-db.txt"));
-    loadP0fSignatures(joinPath(dataDirectory_, "p0f.fp"));
-    loadFingerBankConf(joinPath(dataDirectory_, "dhcp_fingerprints.conf"));
+    loadLookupCsv((std::filesystem::path(dataDirectory_) / "lookup.csv").string());
+    loadManufFile((std::filesystem::path(dataDirectory_) / "manuf").string(), "Wireshark manuf");
+    loadManufFile((std::filesystem::path(dataDirectory_) / "wireshark-manuf.txt").string(), "Wireshark manuf historique");
+    loadNmapPrefixes((std::filesystem::path(dataDirectory_) / "nmap-mac-prefixes.txt").string());
+    loadDhcpFingerprints((std::filesystem::path(dataDirectory_) / "kyd-dhcp-db.txt").string());
+    loadP0fSignatures((std::filesystem::path(dataDirectory_) / "p0f.fp").string());
+    loadFingerBankConf((std::filesystem::path(dataDirectory_) / "dhcp_fingerprints.conf").string());
 
     addPassiveSource("nmap-os-db.txt", "Nmap OS DB",
                      "Signatures pour le fingerprinting actif des systèmes");
@@ -232,7 +220,7 @@ void Database::loadLookupCsv(const std::string& filePath) {
 
 void Database::loadManufFile(const std::string& filePath, const std::string& sourceName) {
     std::ifstream file(filePath);
-    const std::string filename = filePath.substr(filePath.find_last_of("/\\") + 1);
+    const std::string filename = std::filesystem::path(filePath).filename().string();
     DataSourceInfo source{filename, sourceName, "Fallback fabricant OUI", 0, file.is_open(), true};
     if (!file.is_open()) {
         addSource(source);
@@ -439,7 +427,7 @@ void Database::loadFingerBankConf(const std::string& filePath) {
 void Database::addPassiveSource(const std::string& fileName,
                                 const std::string& label,
                                 const std::string& purpose) {
-    const bool available = fileExists(joinPath(dataDirectory_, fileName));
+    const bool available = std::filesystem::exists(std::filesystem::path(dataDirectory_) / fileName);
     addSource(DataSourceInfo{fileName, label, purpose, 0, available, false});
 }
 

@@ -364,6 +364,50 @@ void showHelp() {
     myzone::ui::waitForEnter();
 }
 
+struct CliArgs {
+    std::string mac;
+    std::string hostname;
+    std::string dhcpFp;
+    std::string tcpSig;
+    std::string dhcpOpts;
+    bool json = false;
+    bool help = false;
+    bool version = false;
+    bool hasIdArg = false;
+};
+
+CliArgs parseArgs(int argc, char* argv[]) {
+    CliArgs args;
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--help") args.help = true;
+        else if (arg == "--version") args.version = true;
+        else if (arg == "--json") args.json = true;
+        else if (arg == "--mac" && i + 1 < argc) { args.mac = argv[++i]; args.hasIdArg = true; }
+        else if (arg == "--hostname" && i + 1 < argc) { args.hostname = argv[++i]; args.hasIdArg = true; }
+        else if (arg == "--dhcp" && i + 1 < argc) { args.dhcpFp = argv[++i]; args.hasIdArg = true; }
+        else if (arg == "--tcp" && i + 1 < argc) { args.tcpSig = argv[++i]; args.hasIdArg = true; }
+        else if (arg == "--dhcp-options" && i + 1 < argc) { args.dhcpOpts = argv[++i]; args.hasIdArg = true; }
+    }
+    return args;
+}
+
+void printCliHelp() {
+    std::cout << "MyZone v1.0 — Network Discovery Engine\n\n"
+              << "Usage:\n"
+              << "  MyZone                                      Mode interactif\n"
+              << "  MyZone --mac AA:BB:CC:DD:EE:FF [options]    Identification directe\n\n"
+              << "Options:\n"
+              << "  --mac <address>        Adresse MAC\n"
+              << "  --hostname <name>      Hostname réseau\n"
+              << "  --dhcp <hash>          Hash MD5 DHCP\n"
+              << "  --tcp <signature>      Signature TCP (p0f)\n"
+              << "  --dhcp-options <list>  Options DHCP (ex: 1,15,3,6)\n"
+              << "  --json                 Sortie au format JSON\n"
+              << "  --help                 Afficher cette aide\n"
+              << "  --version              Afficher la version\n";
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) {
@@ -395,6 +439,34 @@ int main(int argc, char* argv[]) {
     engine.addModule(std::make_unique<myzone::FingerBankModule>(database));
 
     myzone::ui::success(std::to_string(engine.moduleCount()) + " modules d'identification actifs");
+
+    CliArgs args = parseArgs(argc, argv);
+    if (args.help) {
+        printCliHelp();
+        return 0;
+    }
+    if (args.version) {
+        std::cout << "MyZone v1.0\n";
+        return 0;
+    }
+    if (args.hasIdArg) {
+        myzone::DeviceProfile input;
+        if (!args.mac.empty()) {
+            try { input.mac = myzone::MacAddress(args.mac); } catch (...) {}
+        }
+        input.hostname = args.hostname;
+        input.dhcpFingerprint = args.dhcpFp;
+        input.tcpSignature = args.tcpSig;
+        input.dhcpOptions = args.dhcpOpts;
+
+        const myzone::DeviceProfile result = engine.identify(input);
+        if (args.json) {
+            std::cout << result.toJson() << "\n";
+        } else {
+            printProfile(result);
+        }
+        return 0;
+    }
 
     bool firstMenu = true;
     while (true) {

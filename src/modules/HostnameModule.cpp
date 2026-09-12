@@ -17,14 +17,14 @@ void HostnameModule::enrich(DeviceProfile& profile) const {
     const std::string& host = profile.hostname;
 
     // Expressions régulières pour les patterns connus
-    const std::regex winDesktop("^DESKTOP-[A-Z0-9]{7}$", std::regex_constants::icase);
-    const std::regex winLaptop("^LAPTOP-[A-Z0-9]{7}$", std::regex_constants::icase);
-    const std::regex android("^android-[a-f0-9]+$", std::regex_constants::icase);
-    const std::regex galaxy("^Galaxy-.*", std::regex_constants::icase);
-    const std::regex pixel("^Pixel-.*", std::regex_constants::icase);
-    const std::regex iphone("(iPhone|iPhone-de-.*|.*s-iPhone|.*-iPhone)$", std::regex_constants::icase);
-    const std::regex ipad("(iPad|iPad-de-.*|.*s-iPad|.*-iPad)$", std::regex_constants::icase);
-    const std::regex macbook(".*MacBook.*", std::regex_constants::icase);
+    const static std::regex winDesktop("^DESKTOP-[A-Z0-9]{7}$", std::regex_constants::icase);
+    const static std::regex winLaptop("^LAPTOP-[A-Z0-9]{7}$", std::regex_constants::icase);
+    const static std::regex android("^android-[a-f0-9]+$", std::regex_constants::icase);
+    const static std::regex galaxy("^Galaxy-.*", std::regex_constants::icase);
+    const static std::regex pixel("^Pixel-.*", std::regex_constants::icase);
+    const static std::regex iphone("(iPhone|iPhone-de-.*|.*s-iPhone|.*-iPhone)$", std::regex_constants::icase);
+    const static std::regex ipad("(iPad|iPad-de-.*|.*s-iPad|.*-iPad)$", std::regex_constants::icase);
+    const static std::regex macbook(".*MacBook.*", std::regex_constants::icase);
 
     std::string detail;
 

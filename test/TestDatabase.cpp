@@ -115,3 +115,23 @@ TEST(Database_emptyDataDir) {
     ASSERT_FALSE(db.isReady());
     ASSERT_TRUE(db.vendorCount() == 0);
 }
+
+TEST(Database_lookupKnownAppleMac) {
+    // F0:EE:7A is an Apple prefix - lookup and verify manufacturer contains "Apple"
+    myzone::Database db(findDataDir());
+    myzone::MacAddress mac("F0:EE:7A:00:11:22");
+    myzone::DeviceInfo info;
+    bool found = db.lookup(mac, info);
+    ASSERT_FATAL(found);  // Use ASSERT_FATAL since subsequent asserts depend on this
+    ASSERT_TRUE(info.companyName.find("Apple") != std::string::npos);
+}
+
+TEST(Database_lookupKnownRaspberryPi) {
+    // B8:27:EB is a Raspberry Pi Foundation prefix
+    myzone::Database db(findDataDir());
+    myzone::MacAddress mac("B8:27:EB:12:34:56");
+    myzone::DeviceInfo info;
+    bool found = db.lookup(mac, info);
+    ASSERT_FATAL(found);
+    ASSERT_TRUE(!info.companyName.empty());
+}
