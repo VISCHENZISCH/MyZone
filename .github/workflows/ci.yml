@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu GCC
+            os: ubuntu-latest
+            compiler: gcc
+            cpp-compiler: g++
+          - name: Ubuntu Clang
+            os: ubuntu-latest
+            compiler: clang
+            cpp-compiler: clang++
+          - name: macOS Clang
+            os: macos-latest
+            compiler: clang
+            cpp-compiler: clang++
+          - name: Windows MSVC
+            os: windows-latest
+            compiler: msvc
+            cpp-compiler: cl
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Compiler (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            sudo apt-get install -y clang
+          fi
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+        env:
+          CC: ${{ matrix.compiler != 'msvc' && matrix.compiler || '' }}
+          CXX: ${{ matrix.cpp-compiler != 'cl' && matrix.cpp-compiler || '' }}
+
+      - name: Build MyZone & Tests
+        run: cmake --build build --config Release
+
+      - name: Run Unit Tests
+        run: ctest --test-dir build -C Release --output-on-failure

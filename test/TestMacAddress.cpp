@@ -92,3 +92,54 @@ TEST(MacAddress_leadingTrailingSpaces) {
     ASSERT_TRUE(mac.isValid());
     ASSERT_EQ(mac.compact(), "AABBCCDDEEFF");
 }
+
+// ──── Propriétés IEEE 802 (LAA, Multicast, Broadcast, Unicast) ────
+
+TEST(MacAddress_ieeeProperties_OfficialUnicast) {
+    // 00:1A:2B:33:44:55 -> 00 en binaire: 0000 0000 -> bit 0=0 (unicast), bit 1=0 (universel)
+    myzone::MacAddress mac("00:1A:2B:33:44:55");
+    ASSERT_TRUE(mac.isValid());
+    ASSERT_TRUE(mac.isUniversallyAdministered());
+    ASSERT_FALSE(mac.isLocallyAdministered());
+    ASSERT_TRUE(mac.isUnicast());
+    ASSERT_FALSE(mac.isMulticast());
+    ASSERT_FALSE(mac.isBroadcast());
+    ASSERT_FALSE(mac.isZero());
+}
+
+TEST(MacAddress_ieeeProperties_RandomizedLAA) {
+    // DA:A1:19:12:34:56 -> DA en binaire: 1101 1010 -> bit 0=0 (unicast), bit 1=1 (LAA / aléatoire privée)
+    myzone::MacAddress mac("DA:A1:19:12:34:56");
+    ASSERT_TRUE(mac.isValid());
+    ASSERT_TRUE(mac.isLocallyAdministered());
+    ASSERT_FALSE(mac.isUniversallyAdministered());
+    ASSERT_TRUE(mac.isUnicast());
+    ASSERT_FALSE(mac.isMulticast());
+}
+
+TEST(MacAddress_ieeeProperties_Multicast) {
+    // 01:00:5E:00:00:01 (IPv4 Multicast) -> 01 en binaire: 0000 0001 -> bit 0=1 (multicast)
+    myzone::MacAddress mac("01:00:5E:00:00:01");
+    ASSERT_TRUE(mac.isValid());
+    ASSERT_TRUE(mac.isMulticast());
+    ASSERT_FALSE(mac.isUnicast());
+    ASSERT_FALSE(mac.isBroadcast());
+}
+
+TEST(MacAddress_ieeeProperties_Broadcast) {
+    myzone::MacAddress mac("FF:FF:FF:FF:FF:FF");
+    ASSERT_TRUE(mac.isValid());
+    ASSERT_TRUE(mac.isBroadcast());
+    ASSERT_TRUE(mac.isMulticast()); // Broadcast est un type de multicast
+    ASSERT_TRUE(mac.isLocallyAdministered());
+    ASSERT_FALSE(mac.isZero());
+}
+
+TEST(MacAddress_ieeeProperties_Zero) {
+    myzone::MacAddress mac("00:00:00:00:00:00");
+    ASSERT_TRUE(mac.isValid());
+    ASSERT_TRUE(mac.isZero());
+    ASSERT_TRUE(mac.isUnicast());
+    ASSERT_TRUE(mac.isUniversallyAdministered());
+    ASSERT_FALSE(mac.isBroadcast());
+}

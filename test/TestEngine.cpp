@@ -236,3 +236,36 @@ TEST(Engine_moduleOrderMatters) {
     engine.addModule(std::make_unique<myzone::FingerBankModule>(db));
     ASSERT_INT_EQ(engine.moduleCount(), 5);
 }
+
+TEST(DeviceProfile_confidenceCalculation) {
+    myzone::DeviceProfile profile;
+    ASSERT_INT_EQ(profile.calculateConfidence(), 0);
+    ASSERT_EQ(profile.confidenceLevel(), "Inconnu");
+
+    profile.addResult("OUI", "Apple, Inc.");
+    profile.manufacturer = "Apple, Inc.";
+    ASSERT_TRUE(profile.calculateConfidence() >= 35);
+
+    profile.addResult("Hostname", "Format iPhone");
+    profile.osName = "iOS";
+    // Devrait avoir le bonus de corrélation croisée
+    ASSERT_TRUE(profile.calculateConfidence() >= 70);
+    ASSERT_EQ(profile.confidenceLevel(), "Moyen");
+}
+
+TEST(DeviceProfile_csvExport) {
+    myzone::DeviceProfile profile;
+    profile.mac = myzone::MacAddress("00:1A:2B:33:44:55");
+    profile.manufacturer = "Cisco";
+    profile.category = myzone::DeviceCategory::Router;
+    profile.addResult("OUI", "Cisco Systems");
+
+    const std::string csv = profile.toCsv();
+    ASSERT_TRUE(csv.find("00:1A:2B:33:44:55") != std::string::npos);
+    ASSERT_TRUE(csv.find("Cisco") != std::string::npos);
+    ASSERT_TRUE(csv.find("Router") != std::string::npos);
+
+    const std::string header = myzone::DeviceProfile::csvHeader();
+    ASSERT_TRUE(header.find("mac") != std::string::npos);
+    ASSERT_TRUE(header.find("confidence") != std::string::npos);
+}

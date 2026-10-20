@@ -47,9 +47,21 @@ struct DeviceProfile {
     /// @brief Vérifie si des résultats de modules sont présents
     /// @return true s'il y a des résultats, false sinon
     bool hasResults() const { return !results.empty(); }
+    /// @brief Calcule un score global de confiance d'identification (0 à 100 %)
+    /// @return Score de confiance en pourcentage
+    int calculateConfidence() const;
+    /// @brief Retourne une étiquette textuelle de confiance ("Élevé", "Moyen", "Faible", "Inconnu")
+    /// @return Niveau de confiance
+    std::string confidenceLevel() const;
     /// @brief Sérialise le profil de l'appareil au format JSON
     /// @return Une chaîne de caractères contenant le JSON
     std::string toJson() const;
+    /// @brief Sérialise le profil de l'appareil au format CSV (une ligne)
+    /// @return Chaîne CSV
+    std::string toCsv() const;
+    /// @brief Renvoie l'en-tête CSV correspondant
+    /// @return Chaîne d'en-tête CSV
+    static std::string csvHeader();
 };
 
 } // namespace myzone

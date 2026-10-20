@@ -140,6 +140,38 @@ std::optional<MacAddress> MacAddress::tryParse(const std::string& raw) noexcept 
     }
 }
 
+bool MacAddress::isLocallyAdministered() const noexcept {
+    return valid_ && ((bytes_[0] & 0x02) != 0);
+}
+
+bool MacAddress::isUniversallyAdministered() const noexcept {
+    return valid_ && ((bytes_[0] & 0x02) == 0);
+}
+
+bool MacAddress::isMulticast() const noexcept {
+    return valid_ && ((bytes_[0] & 0x01) != 0);
+}
+
+bool MacAddress::isUnicast() const noexcept {
+    return valid_ && ((bytes_[0] & 0x01) == 0);
+}
+
+bool MacAddress::isBroadcast() const noexcept {
+    if (!valid_) return false;
+    for (unsigned char b : bytes_) {
+        if (b != 0xFF) return false;
+    }
+    return true;
+}
+
+bool MacAddress::isZero() const noexcept {
+    if (!valid_) return false;
+    for (unsigned char b : bytes_) {
+        if (b != 0x00) return false;
+    }
+    return true;
+}
+
 } // namespace myzone
 
 namespace std {

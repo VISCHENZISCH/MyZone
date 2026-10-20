@@ -43,10 +43,34 @@ namespace myzone {
         std::string toString() const;
         /// @brief Renvoie le tableau interne d'octets de l'adresse MAC
         /// @return Référence vers un tableau de 6 octets
-        const std::array<unsigned char, 6>& bytes() const { return bytes_;}
+        const std::array<unsigned char, 6>& bytes() const { return bytes_; }
         /// @brief Vérifie si l'adresse est valide
         /// @return true si valide, false sinon
-        bool isValid() const { return valid_;}
+        bool isValid() const { return valid_; }
+
+        /// @brief Vérifie si l'adresse est administrée localement (ex: MAC privée/aléatoire iOS, Android, Windows)
+        /// @return true si le bit LAA (Locally Administered Address) est activé
+        bool isLocallyAdministered() const noexcept;
+
+        /// @brief Vérifie si l'adresse est administrée universellement (OUI IEEE officiel)
+        /// @return true si le bit LAA est à 0
+        bool isUniversallyAdministered() const noexcept;
+
+        /// @brief Vérifie si l'adresse est une adresse de diffusion Multicast (bit I/G = 1)
+        /// @return true si multicast
+        bool isMulticast() const noexcept;
+
+        /// @brief Vérifie si l'adresse est une adresse Unicast individuelle (bit I/G = 0)
+        /// @return true si unicast individuel
+        bool isUnicast() const noexcept;
+
+        /// @brief Vérifie si l'adresse est l'adresse de diffusion Broadcast (FF:FF:FF:FF:FF:FF)
+        /// @return true si broadcast
+        bool isBroadcast() const noexcept;
+
+        /// @brief Vérifie si l'adresse est nulle (00:00:00:00:00:00)
+        /// @return true si tous les octets sont nuls
+        bool isZero() const noexcept;
 
     private:
         std::array<unsigned char, 6> bytes_{};
