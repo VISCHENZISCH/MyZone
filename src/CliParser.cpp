@@ -1,5 +1,7 @@
 #include "../include/CliParser.hpp"
 #include "../include/UI.hpp"
+#include "../include/MacAddress.hpp"
+#include "Version.hpp"
 
 #include <iostream>
 
@@ -8,8 +10,18 @@ namespace myzone {
 CliOptions CliParser::parse(int argc, char* argv[]) {
     CliOptions options;
 
+    // Associe chaque option à valeur au champ qu'elle renseigne
+    const auto valueTarget = [&options](const std::string& arg) -> std::string* {
+        if (arg == "--mac") return &options.mac;
+        if (arg == "--hostname") return &options.hostname;
+        if (arg == "--dhcp") return &options.dhcpFp;
+        if (arg == "--tcp") return &options.tcpSig;
+        if (arg == "--dhcp-options") return &options.dhcpOpts;
+        return nullptr;
+    };
+
     for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
+        const std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") {
             options.help = true;
         } else if (arg == "--version" || arg == "-v") {
@@ -20,24 +32,33 @@ CliOptions CliParser::parse(int argc, char* argv[]) {
             options.csv = true;
         } else if (arg == "--quiet" || arg == "-q") {
             options.quiet = true;
-        } else if (arg == "--mac" && i + 1 < argc) {
-            options.mac = argv[++i];
+        } else if (std::string* target = valueTarget(arg)) {
+            if (i + 1 >= argc) {
+                options.error = "l'option " + arg + " attend une valeur";
+                return options;
+            }
+            *target = argv[++i];
+            if (target->empty()) {
+                options.error = "l'option " + arg + " attend une valeur non vide";
+                return options;
+            }
             options.hasIdArg = true;
-        } else if (arg == "--hostname" && i + 1 < argc) {
-            options.hostname = argv[++i];
-            options.hasIdArg = true;
-        } else if (arg == "--dhcp" && i + 1 < argc) {
-            options.dhcpFp = argv[++i];
-            options.hasIdArg = true;
-        } else if (arg == "--tcp" && i + 1 < argc) {
-            options.tcpSig = argv[++i];
-            options.hasIdArg = true;
-        } else if (arg == "--dhcp-options" && i + 1 < argc) {
-            options.dhcpOpts = argv[++i];
-            options.hasIdArg = true;
+        } else {
+            options.error = "argument inconnu : " + arg;
+            return options;
         }
     }
 
+    if (options.help || options.version) {
+        return options;
+    }
+    if (options.json && options.csv) {
+        options.error = "--json et --csv sont mutuellement exclusifs";
+    } else if ((options.json || options.csv) && !options.hasIdArg) {
+        options.error = "--json et --csv nécessitent au moins un identifiant (--mac, --hostname, --dhcp, --tcp, --dhcp-options)";
+    } else if (!options.mac.empty() && !MacAddress::tryParse(options.mac)) {
+        options.error = "adresse MAC invalide : " + options.mac;
+    }
     return options;
 }
 
@@ -56,11 +77,12 @@ void CliParser::printHelp() {
               << "  --csv                  Sortie stricte au format CSV (tableaux/audits)\n"
               << "  --quiet, -q            Mode silencieux (supprime bannières et logs)\n"
               << "  --help, -h             Afficher cette aide\n"
-              << "  --version, -v          Afficher la version\n";
+              << "  --version, -v          Afficher la version\n\n"
+              << "Codes de sortie : 0 succes, 1 bases introuvables, 2 erreur d'utilisation\n";
 }
 
 void CliParser::printVersion() {
-    std::cout << "MyZone v1.1 - Network Device Fingerprinting Engine (C++17)\n";
+    std::cout << "MyZone v" << kVersion << " - Network Device Fingerprinting Engine (C++17)\n";
 }
 
 } // namespace myzone

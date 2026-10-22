@@ -1,4 +1,5 @@
 #include "../include/UI.hpp"
+#include "Version.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
@@ -152,7 +153,7 @@ void banner() {
     if (g_quiet) return;
     std::cout << '\n';
     std::cout << color("  __  __       ____                  ", greenBright) << '\n';
-    std::cout << color(" |  \\/  |_   _|__  /___  _ __   ___  ", greenBright) << " " << color("v1.0", cyanBright) << '\n';
+    std::cout << color(" |  \\/  |_   _|__  /___  _ __   ___  ", greenBright) << " " << color(std::string("v") + kVersion, cyanBright) << '\n';
     std::cout << color(" | |\\/| | | | | / // _ \\| '_ \\ / _ \\ ", greenBright) << '\n';
     std::cout << color(" | |  | | |_| |/ /| (_) | | | |  __/ ", greenBright) << " " << color("local network discovery & device auditor", dim) << '\n';
     std::cout << color(" |_|  |_|\\__, /____\\___/|_| |_|\\___| ", greenBright) << " " << color("https://github.com/VISCHENZISCH/MyZone", cyan) << '\n';

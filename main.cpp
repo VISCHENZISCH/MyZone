@@ -22,6 +22,12 @@ int main(int argc, char* argv[]) {
     // 1. Analyse précoce des arguments de ligne de commande
     const myzone::CliOptions options = myzone::CliParser::parse(argc, argv);
 
+    if (!options.error.empty()) {
+        std::cerr << "MyZone: " << options.error << "\n"
+                  << "Essayez 'MyZone --help' pour plus d'informations.\n";
+        return myzone::CliParser::kUsageError;
+    }
+
     if (options.help) {
         myzone::CliParser::printHelp();
         return 0;
@@ -72,9 +78,8 @@ int main(int argc, char* argv[]) {
     if (options.hasIdArg) {
         myzone::DeviceProfile input;
         if (!options.mac.empty()) {
-            try {
-                input.mac = myzone::MacAddress(options.mac);
-            } catch (...) {}
+            // Déjà validée par CliParser::parse
+            input.mac = myzone::MacAddress(options.mac);
         }
         input.hostname = options.hostname;
         input.dhcpFingerprint = options.dhcpFp;

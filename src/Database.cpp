@@ -157,7 +157,7 @@ Database::Database(const std::string& dataDirectory) : dataDirectory_(dataDirect
     dhcpData_.reserve(1024);
     p0fData_.max_load_factor(0.70F);
     p0fData_.reserve(1024);
-    sources_.reserve(9);
+    sources_.reserve(7);
 
     loadLookupCsv((std::filesystem::path(dataDirectory_) / "lookup.csv").string());
     loadManufFile((std::filesystem::path(dataDirectory_) / "manuf").string(), "Wireshark manuf");
@@ -166,11 +166,6 @@ Database::Database(const std::string& dataDirectory) : dataDirectory_(dataDirect
     loadDhcpFingerprints((std::filesystem::path(dataDirectory_) / "kyd-dhcp-db.txt").string());
     loadP0fSignatures((std::filesystem::path(dataDirectory_) / "p0f.fp").string());
     loadFingerBankConf((std::filesystem::path(dataDirectory_) / "dhcp_fingerprints.conf").string());
-
-    addPassiveSource("nmap-os-db.txt", "Nmap OS DB",
-                     "Signatures pour le fingerprinting actif des systèmes");
-    addPassiveSource("nmap-service-probes.txt", "Nmap service probes",
-                     "Probes et signatures de services réseau");
 }
 
 void Database::addSource(const DataSourceInfo& source) {
@@ -422,13 +417,6 @@ void Database::loadFingerBankConf(const std::string& filePath) {
         }
     }
     addSource(source);
-}
-
-void Database::addPassiveSource(const std::string& fileName,
-                                const std::string& label,
-                                const std::string& purpose) {
-    const bool available = std::filesystem::exists(std::filesystem::path(dataDirectory_) / fileName);
-    addSource(DataSourceInfo{fileName, label, purpose, 0, available, false});
 }
 
 bool Database::lookup(const MacAddress& mac, DeviceInfo& outInfo) const {

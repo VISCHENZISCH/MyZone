@@ -55,4 +55,28 @@ namespace myzone {
 			default:                             return "Inconnu";
 		}
 	}
+
+	std::string toKey(DeviceCategory category) {
+		switch (category) {
+			case DeviceCategory::Computer:       return "Computer";
+			case DeviceCategory::Mobile:         return "Mobile";
+			case DeviceCategory::Tablet:         return "Tablet";
+			case DeviceCategory::Server:         return "Server";
+			case DeviceCategory::VirtualMachine: return "VirtualMachine";
+			case DeviceCategory::Modem:          return "Modem";
+			case DeviceCategory::Router:         return "Router";
+			case DeviceCategory::Switch:         return "Switch";
+			case DeviceCategory::AccessPoint:    return "AccessPoint";
+			case DeviceCategory::Printer:        return "Printer";
+			case DeviceCategory::SmartTV:        return "SmartTV";
+			case DeviceCategory::GamingConsole:  return "GamingConsole";
+			case DeviceCategory::Audio:          return "Audio";
+			case DeviceCategory::Camera:         return "Camera";
+			case DeviceCategory::SmartHome:      return "SmartHome";
+			case DeviceCategory::Wearable:       return "Wearable";
+			case DeviceCategory::IoT:            return "IoT";
+			case DeviceCategory::Unknown:
+			default:                             return "Unknown";
+		}
+	}
 }

@@ -1,0 +1,13 @@
+#ifndef MYZONE_VERSION_HPP
+#define MYZONE_VERSION_HPP
+
+// Fichier généré par CMake à partir de include/Version.hpp.in — ne pas modifier.
+
+namespace myzone {
+
+/// @brief Version de MyZone, définie une seule fois dans CMakeLists.txt (project VERSION)
+constexpr const char* kVersion = "@PROJECT_VERSION@";
+
+} // namespace myzone
+
+#endif // MYZONE_VERSION_HPP

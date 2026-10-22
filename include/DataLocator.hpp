@@ -8,7 +8,9 @@ namespace myzone {
 /// @brief Utilitaire pour localiser automatiquement le répertoire des données 'data/'
 class DataLocator {
 public:
-    /// @brief Tente de localiser le répertoire de données 'data' à partir du chemin de l'exécutable et du répertoire courant
+    /// @brief Tente de localiser le répertoire de données 'data'
+    /// Ordre : variable MYZONE_DATA, data/ près du répertoire courant ou de l'exécutable,
+    /// puis <prefix>/share/myzone/data (installation)
     /// @param executablePath Chemin d'invocation de l'exécutable (ex: argv[0])
     /// @return Chemin valide vers le dossier data/ ou "data" par défaut
     static std::string locate(const char* executablePath = nullptr);

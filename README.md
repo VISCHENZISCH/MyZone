@@ -6,8 +6,9 @@
 
 **Moteur passif ultra-rapide d'identification et de fingerprinting réseau d'appareils (C++17)**
 
-[![CI Status](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge&logo=github-actions&logoColor=white)](.github/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/VISCHENZISCH/MyZone/ci.yml?branch=main&style=for-the-badge&logo=github-actions&logoColor=white&label=CI)](https://github.com/VISCHENZISCH/MyZone/actions/workflows/ci.yml)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)](https://en.cppreference.com/w/cpp/17)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](#licence)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=for-the-badge&logo=linux&logoColor=white)](#)
 [![Output](https://img.shields.io/badge/output-CLI%20%7C%20JSON%20%7C%20CSV-00B8D9?style=for-the-badge)](#utilisation-en-ligne-de-commande-cli)
@@ -24,7 +25,7 @@
 
 ```text
   __  __       ____                  
- |  \/  |_   _|__  /___  _ __   ___   v1.1
+ |  \/  |_   _|__  /___  _ __   ___   v1.2.0
  | |\/| | | | | / // _ \| '_ \ / _ \ 
  | |  | | |_| |/ /| (_) | | | |  __/  local network discovery & device auditor
  |_|  |_|\__, /____\___/|_| |_|\___|  https://github.com/VISCHENZISCH/MyZone
@@ -42,9 +43,9 @@
 | **Détection MAC Randomisées (LAA Bit)** |  **Oui** |  Partiel |  Manuel |  Non |
 | **Score de Confiance Croisé (%)** |  **Oui** |  Non |  Non |  Non |
 | **Empreintes DHCP & p0f TCP SYN** |  **Natif** |  Partiel |  Dissecteur seul |  Non |
-| **Vitesse d'exécution** |  **< 2 ms** |  Plusieurs s/min |  Variable |  Quelques s |
+| **Vitesse d'identification** |  **~1 µs** (+ ~120 ms de chargement des bases) |  Plusieurs s/min |  Variable |  Quelques s |
 | **Sortie Scriptable (JSON & CSV)** |  **Oui** |  XML/Grep |  Tshark requis |  Limité |
-| **Bibliothèque C++ réutilisable (`libmyzone`)** |  **Oui** |  Non |  Non |  Non |
+| **Bibliothèque C++ réutilisable (`myzone_core`)** |  **Oui** |  Non |  Non |  Non |
 
 ---
 
@@ -60,11 +61,12 @@
   - `p0f TCP` : Fingerprinting passif de l'OS via signature SYN TCP/IP.
   - `FingerBank` : Identification d'OS via la séquence ordonnée d'options DHCP demandées.
 - **Score de Confiance Intelligent (0 à 100%)** :
-  - Synthétise la fiabilité globale de l'identification grâce à des règles de corrélation croisée (ex: MAC Apple + Hostname iOS = 95% de confiance).
+  - Additionne le poids des sources ayant répondu (OUI 35, DHCP 35, FingerBank/Hostname/p0f 25) avec un bonus de +10 quand fabricant et OS sont tous deux connus. Une MAC privée (LAA) ne compte que pour 15.
+  - Niveaux : `high` (≥ 80), `medium` (≥ 50), `low` (> 0).
 - **Architecture Propre & Modulaire (C++17)** :
-  - `myzone_core` : bibliothèque C++ statique réutilisable pour vos propres projets.
+  - `myzone_core` : bibliothèque C++ statique réutilisable, installable et utilisable via `find_package(MyZone)`.
   - `MyZone` : CLI interactif et scriptable avec exports `--json` et `--csv`.
-- **Suite de tests automatisée** : tests unitaires intégrés avec `ctest`.
+- **Suite de tests automatisée** : tests unitaires et tests de bout en bout du CLI avec `ctest`, exécutés aussi sous AddressSanitizer/UBSan en CI.
 
 ---
 
@@ -85,19 +87,20 @@ cmake --build .
 # 3. Lancer la suite de tests
 ctest --output-on-failure
 
-# 4. Installer (optionnel)
+# 4. Installer (optionnel) : binaire, bibliothèque, en-têtes et bases dans share/myzone/data
 sudo cmake --install .
 ```
 
-### Compilation rapide avec GCC / Clang
+### Options CMake
 
-```bash
-g++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Iinclude \
-  main.cpp src/*.cpp src/modules/*.cpp \
-  -o MyZone
+| Option | Défaut | Effet |
+|---|---|---|
+| `MYZONE_BUILD_TESTS` | `ON` | Compile `MyZoneTests` et enregistre les tests `ctest` |
+| `MYZONE_SANITIZE` | `OFF` | Active AddressSanitizer + UndefinedBehaviorSanitizer (GCC/Clang) |
 
-./MyZone
-```
+### Emplacement des bases de signatures
+
+MyZone cherche le dossier `data/` dans cet ordre : variable d'environnement `MYZONE_DATA`, `data/` près du répertoire courant ou de l'exécutable, puis `<prefix>/share/myzone/data` après installation.
 
 ---
 
@@ -137,26 +140,36 @@ g++ -std=c++17 -O3 -DNDEBUG -Wall -Wextra -Wpedantic -Iinclude \
 | `--help`, `-h` | *(aucun)* | Affichage immédiat de l'aide |
 | `--version`, `-v` | *(aucun)* | Affichage de la version |
 
+**Codes de sortie** : `0` succès, `1` bases de signatures introuvables, `2` erreur d'utilisation (option inconnue, valeur manquante, MAC invalide, `--json` avec `--csv`, ou `--json`/`--csv` sans identifiant). Les erreurs sont écrites sur `stderr`, la sortie `stdout` reste exploitable par un script.
+
 ---
 
 ## Exemple de Sortie JSON
 
+Les champs `category` et `confidenceLevel` sont des **identifiants stables en anglais**, destinés aux scripts. Leurs libellés traduits sont dans `categoryLabel` et `confidenceLabel`.
+
+```bash
+./MyZone --mac 00:11:22:33:44:55 --dhcp-options "1,15,3,6,44,46,47,31,33,121,249,43" --json | jq .
+```
+
 ```json
 {
-  "mac": "AC:DE:48:00:11:22",
+  "mac": "00:11:22:33:44:55",
   "isRandomMac": false,
-  "manufacturer": "Apple, Inc.",
-  "category": "Mobile",
-  "osName": "Apple iOS",
-  "hostname": "iPhone-de-Tom",
-  "confidence": 95,
-  "confidenceLevel": "Élevé",
+  "manufacturer": "CIMSYS Inc",
+  "osName": "Microsoft Windows Vista/7 or Server 2008 (Version 6.0)",
+  "dhcpOptions": "1,15,3,6,44,46,47,31,33,121,249,43",
+  "confidence": 70,
+  "confidenceLevel": "medium",
+  "confidenceLabel": "Moyen",
   "modules": [
-    {"name": "OUI", "detail": "Apple, Inc. (Mobile)"},
-    {"name": "Hostname", "detail": "Pattern iPhone détecté"}
+    {"name": "OUI", "detail": "CIMSYS Inc (Inconnu)"},
+    {"name": "FingerBank", "detail": "Microsoft Windows Vista/7 or Server 2008 (Version 6.0)"}
   ]
 }
 ```
+
+Valeurs possibles de `category` : `Computer`, `Mobile`, `Tablet`, `Server`, `VirtualMachine`, `Modem`, `Router`, `Switch`, `AccessPoint`, `Printer`, `SmartTV`, `GamingConsole`, `Audio`, `Camera`, `SmartHome`, `Wearable`, `IoT` (absent si inconnue).
 
 ---
 
@@ -188,24 +201,32 @@ flowchart TD
 
 ## Intégration en tant que Bibliothèque C++
 
-MyZone peut être intégré en tant que bibliothèque statique dans vos propres applications :
+MyZone s'installe comme une bibliothèque statique avec sa configuration CMake :
+
+```cmake
+find_package(MyZone 1.2 REQUIRED)
+target_link_libraries(mon_app PRIVATE MyZone::myzone_core)
+```
 
 ```cpp
-#include <myzone/IdentificationEngine.hpp>
+#include <iostream>
+#include <memory>
+#include <myzone/DataLocator.hpp>
 #include <myzone/Database.hpp>
-#include <myzone/modules/OuiModule.hpp>
+#include <myzone/IdentificationEngine.hpp>
 #include <myzone/modules/HostnameModule.hpp>
+#include <myzone/modules/OuiModule.hpp>
 
-int main() {
-    myzone::Database db("data");
+int main(int, char* argv[]) {
+    const myzone::Database db(myzone::DataLocator::locate(argv[0]));
     myzone::IdentificationEngine engine;
     engine.addModule(std::make_unique<myzone::OuiModule>(db));
     engine.addModule(std::make_unique<myzone::HostnameModule>());
 
     myzone::DeviceProfile target;
     target.mac = myzone::MacAddress("B8:27:EB:12:34:56");
-    
-    myzone::DeviceProfile result = engine.identify(target);
+
+    const myzone::DeviceProfile result = engine.identify(target);
     std::cout << "Fabricant : " << result.manufacturer << "\n";
     std::cout << "Confiance : " << result.calculateConfidence() << "%\n";
     return 0;
@@ -224,19 +245,12 @@ python3 scripts/update_signatures.py
 
 ---
 
-## Roadmap vers les 20k Étoiles
+## Roadmap
 
-- [x] **v1.1 (Actuelle)** :
-  - Détection avancée IEEE 802 (MAC Randomisées LAA, Multicast, Broadcast).
-  - Moteur de score de confiance croisé (0 - 100%).
-  - Découpage modulaire Clean Architecture (`DataLocator`, `CliParser`, `InteractiveCli`).
-  - Exports multi-formats `--json` et `--csv`.
-  - Intégration CI GitHub Actions multi-plateforme.
-  - Script de synchronisation des signatures.
-- [ ] **v2.0 (Prochainement)** :
-  - **Mode Sniffer Passif en temps réel** (écoute live du trafic ARP, DHCP, mDNS sans émettre de paquet).
-  - Support de lecture de captures PCAP (`myzone --pcap capture.pcapng`).
-  - Serveur REST API local ultra-léger pour intégration dashboard web.
+- [x] **v1.1** : détection IEEE 802 (LAA, multicast, broadcast), score de confiance, exports `--json` / `--csv`, CI multi-plateforme.
+- [x] **v1.2 (actuelle)** : fiabilité. Voir le [CHANGELOG](CHANGELOG.md) : sorties machine stables, CLI stricte, bibliothèque installable, licences tierces documentées.
+- [ ] **v1.3** : moteur par indices. Fusion pondérée avec détection des conflits entre sources, confiance fondée sur l'accord entre sources, vrai matcher p0f (jokers), taxonomie FingerBank, mode lot (`--input`, JSONL).
+- [ ] **v2.0** : passif réel. Capture libpcap (`-i eth0`, `-r capture.pcap`), analyse DHCP / ARP / mDNS / NBNS / SSDP / TCP SYN, inventaire SQLite et suivi des MAC aléatoires.
 
 ---
 
@@ -248,4 +262,6 @@ Les contributions sont chaleureusement accueillies ! Consultez [CONTRIBUTING.md]
 
 ## Licence
 
-Ce projet est sous licence **MIT**. Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
+Le code de ce projet est sous licence **MIT**. Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
+
+Les bases de signatures du dossier `data/` restent soumises à leurs licences d'origine (GPL, NPSL, LGPL, ODbL) : voir [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
