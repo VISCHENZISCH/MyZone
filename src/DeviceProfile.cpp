@@ -23,7 +23,7 @@ static std::string jsonEscape(const std::string& str) {
 }
 
 static std::string csvEscape(const std::string& str) {
-    if (str.find(',') == std::string::npos && str.find('"') == std::string::npos && str.find('\n') == std::string::npos) {
+    if (str.find_first_of(",\"\r\n") == std::string::npos) {
         return str;
     }
     std::string result = "\"";
@@ -90,6 +90,14 @@ std::string DeviceProfile::confidenceLevel() const {
     return "Inconnu";
 }
 
+std::string DeviceProfile::confidenceKey() const {
+    const int conf = calculateConfidence();
+    if (conf >= 80) return "high";
+    if (conf >= 50) return "medium";
+    if (conf > 0) return "low";
+    return "unknown";
+}
+
 std::string DeviceProfile::toJson() const {
     std::stringstream ss;
     ss << "{";
@@ -111,7 +119,8 @@ std::string DeviceProfile::toJson() const {
     }
     addField("manufacturer", manufacturer);
     if (category != DeviceCategory::Unknown) {
-        addField("category", toString(category));
+        addField("category", toKey(category));
+        addField("categoryLabel", toString(category));
     }
     addField("osName", osName);
     addField("deviceModel", deviceModel);
@@ -123,7 +132,9 @@ std::string DeviceProfile::toJson() const {
     const int confidence = calculateConfidence();
     if (confidence > 0) {
         if (!first) ss << ",";
-        ss << "\"confidence\":" << confidence << ",\"confidenceLevel\":\"" << confidenceLevel() << "\"";
+        ss << "\"confidence\":" << confidence
+           << ",\"confidenceLevel\":\"" << confidenceKey() << "\""
+           << ",\"confidenceLabel\":\"" << jsonEscape(confidenceLevel()) << "\"";
         first = false;
     }
     
@@ -149,11 +160,11 @@ std::string DeviceProfile::toCsv() const {
     std::stringstream ss;
     ss << csvEscape(mac.isValid() ? mac.toString() : "") << ","
        << csvEscape(manufacturer) << ","
-       << csvEscape(category != DeviceCategory::Unknown ? toString(category) : "") << ","
+       << csvEscape(category != DeviceCategory::Unknown ? toKey(category) : "") << ","
        << csvEscape(osName) << ","
        << csvEscape(deviceModel) << ","
        << calculateConfidence() << ","
-       << csvEscape(confidenceLevel()) << ","
+       << confidenceKey() << ","
        << csvEscape(hostname) << ","
        << (mac.isValid() && mac.isLocallyAdministered() ? "true" : "false");
     return ss.str();

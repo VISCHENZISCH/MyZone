@@ -1,64 +1,35 @@
 # Bases de données de MyZone
 
-Ce dossier est la source unique de données de l'application. L'interface indexe `lookup.csv`, `manuf`, `wireshark-manuf.txt`, `nmap-mac-prefixes.txt` et `kyd-dhcp-db.txt` au démarrage, sans écraser une entrée OUI déjà connue. Les autres fichiers sont conservés pour le futur module de fingerprinting réseau.
+Ce dossier est la source unique de données de l'application. Toutes les bases ci-dessous sont indexées en mémoire au démarrage. Les licences de chaque base sont détaillées dans [THIRD_PARTY_LICENSES.md](../THIRD_PARTY_LICENSES.md).
 
-## Intégration actuelle
-
-| Fichier | État | Rôle |
+| Fichier | Rôle | Module |
 |---|---|---|
-| `lookup.csv` | Indexé en priorité | Fabricant et catégorie OUI enrichie |
-| `manuf` | Indexé en complément | Base Wireshark récente |
-| `wireshark-manuf.txt` | Indexé en complément | Base Wireshark historique |
-| `nmap-mac-prefixes.txt` | Indexé en complément | Base fabricants Nmap |
-| `kyd-dhcp-db.txt` | Indexé | Lookup des empreintes DHCP |
-| `dhcp_fingerprints.conf`, `nmap-os-db.txt`, `nmap-service-probes.txt`, `p0f.fp` | Disponibles | Signatures pour l'analyse réseau future |
+| `lookup.csv` | Fabricant **et catégorie** par préfixe OUI (prioritaire) | `OUI` |
+| `manuf` | Fabricant OUI, base Wireshark récente (fallback) | `OUI` |
+| `wireshark-manuf.txt` | Fabricant OUI, base Wireshark historique (fallback) | `OUI` |
+| `nmap-mac-prefixes.txt` | Fabricant OUI, base Nmap (fallback) | `OUI` |
+| `kyd-dhcp-db.txt` | Appareil par hash MD5 d'empreinte DHCP (option 55) | `DHCP` |
+| `dhcp_fingerprints.conf` | OS par liste ordonnée d'options DHCP | `FingerBank` |
+| `p0f.fp` | OS par signature TCP SYN (section `[tcp:request]`) | `p0f TCP` |
 
-Les bases OUI partagent de nombreuses entrées. MyZone conserve une seule fiche par préfixe MAC : le référentiel `lookup.csv`, qui contient la catégorie d'appareil, est prioritaire ; Wireshark et Nmap servent de fallback.
+Les bases OUI partagent de nombreuses entrées. MyZone conserve une seule fiche par préfixe MAC, dans l'ordre de chargement : `lookup.csv` (qui porte la catégorie d'appareil), puis Wireshark, puis Nmap. Les préfixes MA-L (/24), MA-M (/28) et MA-S (/36) sont pris en charge.
 
-## 1. wireshark-manuf.txt (946 Ko, 17 411 lignes)
-**Source :** mirroir GitHub officiel de Wireshark
-**Usage :** lookup MAC → fabricant, alternative/complément à ta base OUI actuelle. Format simple type `ethers(4)` :
+## Formats
+
+- **manuf / wireshark-manuf.txt** — TSV `préfixe[/masque] <tab> nom court <tab> nom complet`.
+- **nmap-mac-prefixes.txt** — `PRÉFIXE Nom du fabricant`.
+- **kyd-dhcp-db.txt** — TSV `DHCP_hash  DHCP_FP  FingerBank_Device_name  Score`.
+- **dhcp_fingerprints.conf** — sections `[os N]` avec `description=` et un bloc `fingerprints=<<EOT … EOT`.
+- **p0f.fp** — format p0f v3 ; seules les signatures `[tcp:request]` sont indexées.
+
+## Mise à jour
+
+```bash
+python3 scripts/update_signatures.py
 ```
-00:00:01	Xerox                  # XEROX CORPORATION
-```
-Gère aussi des masques réseau (ex: `00:50:C2:A1:10:00/36`) pour des plages plus précises qu'un simple OUI /24.
 
-## 2. nmap-mac-prefixes.txt (1.4 Mo, 52 091 lignes)
-**Source :** dépôt officiel Nmap (github.com/nmap/nmap)
-**Usage :** encore une autre base OUI → fabricant, à croiser avec les deux précédentes en cas d'absence de correspondance.
+Le script actualise `manuf` et `nmap-mac-prefixes.txt` depuis leurs dépôts officiels.
 
-## 3. nmap-os-db.txt (5.2 Mo, 116 271 lignes)
-**Source :** dépôt officiel Nmap
-**Usage :** fingerprinting **actif** d'OS/appareil via l'envoi de paquets TCP/UDP/ICMP spécifiques et l'analyse des réponses. Plus de 2 600 signatures, classées par type d'appareil (routeur, switch, imprimante, console...). Format texte structuré (`Fingerprint`, `Class`, `SEQ`, `OPS`, `WIN`...) — nécessite d'implémenter les probes réseau correspondantes pour en tirer parti (complexe, pour une phase avancée).
+## Bases retirées en v1.2
 
-## 4. nmap-service-probes.txt (2.5 Mo, 17 167 lignes)
-**Source :** dépôt officiel Nmap
-**Usage :** identification de services derrière un port ouvert (ex: bannière MQTT, HTTP, telnet...) via des règles de correspondance (regex). Utile en Phase 3 pour affiner IoT (un port 1883 ouvert + bannière MQTT = objet IoT quasi certain).
-
-## 5. kyd-dhcp-db.txt (66 Ko, 592 lignes)
-**Source :** github.com/ptimmons/kyd (dérivé de l'API Fingerbank)
-**Usage :** fingerprinting **DHCP** — un hash basé sur l'ordre des options demandées par le client DHCP (option 55) identifie souvent l'appareil précisément. Format TSV :
-```
-DHCP_hash    DHCP_FP    FingerBank_Device_name    Score
-```
-Nécessite de capturer les requêtes DHCP du réseau (option 55) pour calculer le hash correspondant et faire le lookup.
-
----
-
-## Recommandation d'intégration dans MyZone
-
-| Base | Complexité d'intégration | Priorité |
-|---|---|---|
-| wireshark-manuf.txt | Faible (même format de lookup que ta base actuelle) | Haute — à croiser dès maintenant |
-| nmap-mac-prefixes.txt | Faible | Moyenne — fallback si les autres bases n'ont pas de match |
-| kyd-dhcp-db.txt | Moyenne (nécessite de sniffer les requêtes DHCP) | Moyenne — bon gain de précision pour peu d'effort |
-| nmap-service-probes.txt | Moyenne (nécessite scan de ports + parsing regex) | Basse — pour la Phase 3 |
-| nmap-os-db.txt | Élevée (nécessite de forger des paquets bruts et interpréter les réponses) | Basse — pour une phase avancée, uniquement si le OS fingerprinting devient un besoin fort |
-
-## Licences à respecter
-
-- **Wireshark manuf** : GPL-2.0-or-later
-- **Nmap (os-db, service-probes, mac-prefixes)** : licence Nmap (basée sur GPLv2 mais non compatible)
-- **KYD / dhcp-db.txt** : BSD-3-Clause (dépôt), données dérivées de l'Open Database License de Fingerbank
-
-À garder en tête si MyZone est distribué publiquement plus tard (cf. section licences du cahier des charges).
+`nmap-os-db.txt` et `nmap-service-probes.txt` ont été retirées : elles servent au fingerprinting **actif** (envoi de sondes), incompatible avec l'approche passive de MyZone, et n'étaient utilisées par aucun module.

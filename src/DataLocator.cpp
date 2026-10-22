@@ -1,5 +1,6 @@
 #include "../include/DataLocator.hpp"
 
+#include <cstdlib>
 #include <vector>
 #include <sys/stat.h>
 
@@ -44,6 +45,14 @@ std::string getParentDirectory(const std::string& path) {
 } // namespace
 
 std::string DataLocator::locate(const char* executablePath) {
+    // 1. Surcharge explicite par l'utilisateur
+    if (const char* fromEnv = std::getenv("MYZONE_DATA")) {
+        if (isDirectory(fromEnv)) {
+            return fromEnv;
+        }
+    }
+
+    // 2. Arborescence de développement : data/ à côté ou au-dessus du binaire / répertoire courant
     std::vector<std::string> roots;
     roots.push_back(getCurrentDirectory());
 
@@ -69,6 +78,22 @@ std::string DataLocator::locate(const char* executablePath) {
             root = getParentDirectory(root);
         }
     }
+
+    // 3. Installation : <prefix>/bin/MyZone -> <prefix>/share/myzone/data
+    if (executablePath != nullptr) {
+        const std::string binDir = getParentDirectory(executablePath);
+        if (!binDir.empty()) {
+            const std::string installed = binDir + "/../share/myzone/data";
+            if (isDirectory(installed)) {
+                return installed;
+            }
+        }
+    }
+#ifdef MYZONE_INSTALL_DATADIR
+    if (isDirectory(MYZONE_INSTALL_DATADIR)) {
+        return MYZONE_INSTALL_DATADIR;
+    }
+#endif
 
     return "data";
 }

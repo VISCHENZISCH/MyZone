@@ -57,6 +57,10 @@ DeviceCategory classifyFromDeviceType(const std::string& deviceType);
 /// @param category La catégorie à convertir
 /// @return Le nom de la catégorie sous forme de chaîne
 std::string toString(DeviceCategory category);
+/// @brief Renvoie l'identifiant stable (anglais, invariant) d'une catégorie, destiné aux sorties JSON/CSV
+/// @param category La catégorie à convertir
+/// @return Clé stable (ex: "Router", "Mobile", "Unknown")
+std::string toKey(DeviceCategory category);
 
 }
 

@@ -125,9 +125,6 @@ namespace myzone {
 		void loadDhcpFingerprints(const std::string& filePath);
 		void loadP0fSignatures(const std::string& filePath);
 		void loadFingerBankConf(const std::string& filePath);
-		void addPassiveSource(const std::string& fileName,
-		                      const std::string& label,
-		                      const std::string& purpose);
 		void addSource(const DataSourceInfo& source);
 		void addVendor(const std::string& prefix,
 		               const std::string& companyName,

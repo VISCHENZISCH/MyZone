@@ -53,6 +53,9 @@ struct DeviceProfile {
     /// @brief Retourne une étiquette textuelle de confiance ("Élevé", "Moyen", "Faible", "Inconnu")
     /// @return Niveau de confiance
     std::string confidenceLevel() const;
+    /// @brief Retourne l'identifiant stable du niveau de confiance ("high", "medium", "low", "unknown")
+    /// @return Clé invariante destinée aux sorties JSON/CSV
+    std::string confidenceKey() const;
     /// @brief Sérialise le profil de l'appareil au format JSON
     /// @return Une chaîne de caractères contenant le JSON
     std::string toJson() const;

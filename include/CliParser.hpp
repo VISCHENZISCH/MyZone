@@ -18,12 +18,15 @@ struct CliOptions {
     bool help = false;
     bool version = false;
     bool hasIdArg = false;
+    /// @brief Message d'erreur d'analyse ; vide si les arguments sont valides
+    std::string error;
 };
 
 /// @brief Analyseur d'arguments CLI
 class CliParser {
 public:
     /// @brief Analyse les arguments passés au binaire
+    /// @return Options analysées ; CliOptions::error est renseigné en cas d'argument invalide
     static CliOptions parse(int argc, char* argv[]);
 
     /// @brief Affiche l'aide en ligne de commande
@@ -31,6 +34,9 @@ public:
 
     /// @brief Affiche la version
     static void printVersion();
+
+    /// @brief Code de sortie en cas d'erreur d'utilisation (convention sysexits/getopt)
+    static constexpr int kUsageError = 2;
 };
 
 } // namespace myzone
